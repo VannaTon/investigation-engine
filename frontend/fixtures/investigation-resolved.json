@@ -1,0 +1,622 @@
+{
+  "alert": {
+    "id": "24afd0ec-1843-488c-9577-8b897eafd0c1",
+    "ruleId": "5d592b7f-2903-424d-8858-680d6bb66a65",
+    "status": "resolved",
+    "title": "High CPU",
+    "message": "cpu_usage exceeded threshold 90",
+    "startedAt": "2026-08-15T06:10:15.279Z",
+    "createdAt": "2026-08-15T06:10:16.053Z",
+    "updatedAt": "2026-08-15T14:06:04.083Z",
+    "service": "auth-service",
+    "resolvedAt": "2026-08-15T14:06:04.083Z"
+  },
+  "window": {
+    "from": "2026-08-15T05:50:00Z",
+    "to": "2026-08-15T06:30:00Z"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-08-15 06:10:00.200Z",
+      "type": "log",
+      "data": {
+        "timestamp": "2026-08-15 06:10:00.200Z",
+        "service": "auth-service",
+        "level": "error",
+        "message": "database timeout",
+        "metadata": {
+          "host": "auth-01",
+          "database": "users"
+        },
+        "stackTrace": "Error: database timeout",
+        "traceId": "trace-alert-001",
+        "spanId": "span-auth-001",
+        "environment": "production"
+      }
+    },
+    {
+      "timestamp": "2026-08-15 06:10:12.778Z",
+      "type": "metric",
+      "data": {
+        "timestamp": "2026-08-15 06:10:12.778Z",
+        "service": "auth-service",
+        "name": "cpu_usage",
+        "type": "gauge",
+        "value": 95,
+        "metadata": {
+          "host": "auth-01"
+        },
+        "unit": "percent"
+      }
+    },
+    {
+      "timestamp": "2026-08-15T06:10:15.279Z",
+      "type": "alert_fired",
+      "data": {
+        "alertId": "24afd0ec-1843-488c-9577-8b897eafd0c1",
+        "ruleId": "5d592b7f-2903-424d-8858-680d6bb66a65",
+        "title": "High CPU",
+        "message": "cpu_usage exceeded threshold 90"
+      }
+    },
+    {
+      "timestamp": "2026-08-15T14:06:04.083Z",
+      "type": "alert_resolved",
+      "data": {
+        "alertId": "24afd0ec-1843-488c-9577-8b897eafd0c1",
+        "ruleId": "5d592b7f-2903-424d-8858-680d6bb66a65",
+        "title": "High CPU"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "timestamp": "2026-08-15 06:10:12.778Z",
+      "service": "auth-service",
+      "name": "cpu_usage",
+      "type": "gauge",
+      "value": 95,
+      "metadata": {
+        "host": "auth-01"
+      },
+      "unit": "percent"
+    }
+  ],
+  "logs": [
+    {
+      "timestamp": "2026-08-15 06:10:00.200Z",
+      "service": "auth-service",
+      "level": "error",
+      "message": "database timeout",
+      "metadata": {
+        "host": "auth-01",
+        "database": "users"
+      },
+      "stackTrace": "Error: database timeout",
+      "traceId": "trace-alert-001",
+      "spanId": "span-auth-001",
+      "environment": "production"
+    }
+  ],
+  "traces": [
+    {
+      "traceId": "trace-alert-001",
+      "spanId": "span-auth-001",
+      "service": "auth-service",
+      "operation": "login",
+      "startTime": "2026-08-15 06:10:00.000Z",
+      "endTime": "2026-08-15 06:10:00.500Z",
+      "durationMs": 500,
+      "status": "error",
+      "metadata": {
+        "test": true
+      },
+      "children": [
+        {
+          "traceId": "trace-alert-001",
+          "spanId": "span-user-001",
+          "service": "user-service",
+          "operation": "get_user",
+          "startTime": "2026-08-15 06:10:00.050Z",
+          "endTime": "2026-08-15 06:10:00.450Z",
+          "durationMs": 400,
+          "status": "error",
+          "metadata": {
+            "test": true
+          },
+          "parentSpanId": "span-auth-001",
+          "children": [
+            {
+              "traceId": "trace-alert-001",
+              "spanId": "span-db-001",
+              "service": "postgres",
+              "operation": "SELECT user",
+              "startTime": "2026-08-15 06:10:00.100Z",
+              "endTime": "2026-08-15 06:10:00.400Z",
+              "durationMs": 300,
+              "status": "error",
+              "metadata": {
+                "test": true
+              },
+              "parentSpanId": "span-user-001",
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "servicesInvolved": [
+      "auth-service",
+      "user-service",
+      "postgres"
+    ],
+    "errorSpans": 3,
+    "metricAnomalies": 1,
+    "logErrors": 1
+  },
+  "findings": [
+    {
+      "id": "metric_threshold:auth-service:cpu_usage:2026-08-15 06:10:12.778Z",
+      "type": "metric_threshold",
+      "severity": "warning",
+      "timestamp": "2026-08-15 06:10:12.778Z",
+      "message": "cpu_usage reached 95 (threshold > 90)",
+      "service": "auth-service"
+    },
+    {
+      "id": "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+      "type": "log_error",
+      "severity": "high",
+      "timestamp": "2026-08-15 06:10:00.200Z",
+      "message": "database timeout",
+      "service": "auth-service",
+      "traceId": "trace-alert-001",
+      "spanId": "span-auth-001"
+    },
+    {
+      "id": "trace_error:trace-alert-001:span-auth-001",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-15 06:10:00.000Z",
+      "message": "Trace error in auth-service: login",
+      "service": "auth-service",
+      "traceId": "trace-alert-001",
+      "spanId": "span-auth-001"
+    },
+    {
+      "id": "trace_error:trace-alert-001:span-user-001",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-15 06:10:00.050Z",
+      "message": "Trace error in user-service: get_user",
+      "service": "user-service",
+      "traceId": "trace-alert-001",
+      "spanId": "span-user-001"
+    },
+    {
+      "id": "trace_error:trace-alert-001:span-db-001",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-15 06:10:00.100Z",
+      "message": "Trace error in postgres: SELECT user",
+      "service": "postgres",
+      "traceId": "trace-alert-001",
+      "spanId": "span-db-001"
+    }
+  ],
+  "correlations": [
+    {
+      "id": "same_span:trace-alert-001:span-auth-001",
+      "type": "same_span",
+      "findingIds": [
+        "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-auth-001"
+      ],
+      "traceId": "trace-alert-001",
+      "spanId": "span-auth-001",
+      "message": "Multiple findings reference span span-auth-001"
+    },
+    {
+      "id": "same_trace:trace-alert-001",
+      "type": "same_trace",
+      "findingIds": [
+        "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-user-001",
+        "trace_error:trace-alert-001:span-db-001"
+      ],
+      "traceId": "trace-alert-001",
+      "message": "Multiple findings occurred within trace trace-alert-001"
+    },
+    {
+      "id": "temporal_service:auth-service:2026-08-15 06:10:00.000Z:2026-08-15 06:10:12.778Z",
+      "type": "temporal_service",
+      "findingIds": [
+        "trace_error:trace-alert-001:span-auth-001",
+        "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+        "metric_threshold:auth-service:cpu_usage:2026-08-15 06:10:12.778Z"
+      ],
+      "service": "auth-service",
+      "message": "Multiple findings occurred on auth-service within 30 seconds"
+    }
+  ],
+  "evidenceGroups": [
+    {
+      "id": "evidence_group:dd0bc24886411f8f",
+      "findingIds": [
+        "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+        "metric_threshold:auth-service:cpu_usage:2026-08-15 06:10:12.778Z",
+        "trace_error:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-db-001",
+        "trace_error:trace-alert-001:span-user-001"
+      ],
+      "correlationIds": [
+        "same_span:trace-alert-001:span-auth-001",
+        "same_trace:trace-alert-001",
+        "temporal_service:auth-service:2026-08-15 06:10:00.000Z:2026-08-15 06:10:12.778Z"
+      ],
+      "services": [
+        "auth-service",
+        "postgres",
+        "user-service"
+      ],
+      "traceIds": [
+        "trace-alert-001"
+      ],
+      "findingCount": 5,
+      "correlationCount": 3,
+      "findingTypes": [
+        "log_error",
+        "metric_threshold",
+        "trace_error"
+      ],
+      "correlationTypes": [
+        "same_span",
+        "same_trace",
+        "temporal_service"
+      ],
+      "startedAt": "2026-08-15 06:10:00.000Z",
+      "endedAt": "2026-08-15 06:10:12.778Z",
+      "message": "5 related findings across 3 services"
+    }
+  ],
+  "signals": [
+    {
+      "id": "signal:cross_service_failure:evidence_group:dd0bc24886411f8f",
+      "type": "cross_service_failure",
+      "evidenceGroupId": "evidence_group:dd0bc24886411f8f",
+      "findingIds": [
+        "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-db-001",
+        "trace_error:trace-alert-001:span-user-001"
+      ],
+      "services": [
+        "auth-service",
+        "postgres",
+        "user-service"
+      ],
+      "message": "Error evidence was observed across 3 services"
+    },
+    {
+      "id": "signal:multi_signal_evidence:evidence_group:dd0bc24886411f8f",
+      "type": "multi_signal_evidence",
+      "evidenceGroupId": "evidence_group:dd0bc24886411f8f",
+      "findingIds": [
+        "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+        "metric_threshold:auth-service:cpu_usage:2026-08-15 06:10:12.778Z",
+        "trace_error:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-db-001",
+        "trace_error:trace-alert-001:span-user-001"
+      ],
+      "message": "This evidence group contains log_error, metric_threshold, trace_error findings"
+    },
+    {
+      "id": "signal:trace_failure_chain:evidence_group:dd0bc24886411f8f:trace-alert-001",
+      "type": "trace_failure_chain",
+      "evidenceGroupId": "evidence_group:dd0bc24886411f8f",
+      "findingIds": [
+        "trace_error:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-db-001",
+        "trace_error:trace-alert-001:span-user-001"
+      ],
+      "traceId": "trace-alert-001",
+      "message": "Error spans were observed across multiple levels of trace trace-alert-001"
+    }
+  ],
+  "evidenceRanks": [
+    {
+      "findingId": "trace_error:trace-alert-001:span-auth-001",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 6,
+      "correlationTypes": [
+        "same_span",
+        "same_trace",
+        "temporal_service"
+      ],
+      "signalTypes": [
+        "cross_service_failure",
+        "multi_signal_evidence",
+        "trace_failure_chain"
+      ],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span",
+        "Correlation support: same_trace",
+        "Correlation support: temporal_service",
+        "Signal support: cross_service_failure",
+        "Signal support: multi_signal_evidence",
+        "Signal support: trace_failure_chain"
+      ]
+    },
+    {
+      "findingId": "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 5,
+      "correlationTypes": [
+        "same_span",
+        "same_trace",
+        "temporal_service"
+      ],
+      "signalTypes": [
+        "cross_service_failure",
+        "multi_signal_evidence"
+      ],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span",
+        "Correlation support: same_trace",
+        "Correlation support: temporal_service",
+        "Signal support: cross_service_failure",
+        "Signal support: multi_signal_evidence"
+      ]
+    },
+    {
+      "findingId": "trace_error:trace-alert-001:span-db-001",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 4,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [
+        "cross_service_failure",
+        "multi_signal_evidence",
+        "trace_failure_chain"
+      ],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace",
+        "Signal support: cross_service_failure",
+        "Signal support: multi_signal_evidence",
+        "Signal support: trace_failure_chain"
+      ]
+    },
+    {
+      "findingId": "trace_error:trace-alert-001:span-user-001",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 4,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [
+        "cross_service_failure",
+        "multi_signal_evidence",
+        "trace_failure_chain"
+      ],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace",
+        "Signal support: cross_service_failure",
+        "Signal support: multi_signal_evidence",
+        "Signal support: trace_failure_chain"
+      ]
+    },
+    {
+      "findingId": "metric_threshold:auth-service:cpu_usage:2026-08-15 06:10:12.778Z",
+      "severity": "warning",
+      "severityRank": 1,
+      "supportScore": 2,
+      "correlationTypes": [
+        "temporal_service"
+      ],
+      "signalTypes": [
+        "multi_signal_evidence"
+      ],
+      "reasons": [
+        "Technical severity: warning",
+        "Correlation support: temporal_service",
+        "Signal support: multi_signal_evidence"
+      ]
+    }
+  ],
+  "integrityIssues": [],
+  "causeCandidates": [
+    {
+      "id": "cause_candidate:evidence_group:dd0bc24886411f8f:auth-service",
+      "service": "auth-service",
+      "findingIds": [
+        "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-auth-001"
+      ],
+      "signalIds": [
+        "signal:cross_service_failure:evidence_group:dd0bc24886411f8f",
+        "signal:multi_signal_evidence:evidence_group:dd0bc24886411f8f",
+        "signal:trace_failure_chain:evidence_group:dd0bc24886411f8f:trace-alert-001"
+      ],
+      "traceIds": [
+        "trace-alert-001"
+      ],
+      "startedAt": "2026-08-15 06:10:00.000Z",
+      "endedAt": "2026-08-15 06:10:00.200Z",
+      "reasons": [
+        "2 failure finding(s) observed on auth-service",
+        "3 structural signal(s) reference this failure evidence"
+      ]
+    },
+    {
+      "id": "cause_candidate:evidence_group:dd0bc24886411f8f:postgres",
+      "service": "postgres",
+      "findingIds": [
+        "trace_error:trace-alert-001:span-db-001"
+      ],
+      "signalIds": [
+        "signal:cross_service_failure:evidence_group:dd0bc24886411f8f",
+        "signal:multi_signal_evidence:evidence_group:dd0bc24886411f8f",
+        "signal:trace_failure_chain:evidence_group:dd0bc24886411f8f:trace-alert-001"
+      ],
+      "traceIds": [
+        "trace-alert-001"
+      ],
+      "startedAt": "2026-08-15 06:10:00.100Z",
+      "endedAt": "2026-08-15 06:10:00.100Z",
+      "reasons": [
+        "1 failure finding(s) observed on postgres",
+        "3 structural signal(s) reference this failure evidence"
+      ]
+    },
+    {
+      "id": "cause_candidate:evidence_group:dd0bc24886411f8f:user-service",
+      "service": "user-service",
+      "findingIds": [
+        "trace_error:trace-alert-001:span-user-001"
+      ],
+      "signalIds": [
+        "signal:cross_service_failure:evidence_group:dd0bc24886411f8f",
+        "signal:multi_signal_evidence:evidence_group:dd0bc24886411f8f",
+        "signal:trace_failure_chain:evidence_group:dd0bc24886411f8f:trace-alert-001"
+      ],
+      "traceIds": [
+        "trace-alert-001"
+      ],
+      "startedAt": "2026-08-15 06:10:00.050Z",
+      "endedAt": "2026-08-15 06:10:00.050Z",
+      "reasons": [
+        "1 failure finding(s) observed on user-service",
+        "3 structural signal(s) reference this failure evidence"
+      ]
+    }
+  ],
+  "causeCandidateFacts": [
+    {
+      "candidateId": "cause_candidate:evidence_group:dd0bc24886411f8f:auth-service",
+      "service": "auth-service",
+      "failureFindingCount": 2,
+      "logErrorCount": 1,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_span",
+        "same_trace",
+        "temporal_service"
+      ],
+      "signalTypes": [
+        "cross_service_failure",
+        "multi_signal_evidence",
+        "trace_failure_chain"
+      ],
+      "supportDiversity": 6,
+      "observedLeafErrorSpanCount": 0,
+      "observedErrorAncestorSpanCount": 1
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:dd0bc24886411f8f:postgres",
+      "service": "postgres",
+      "failureFindingCount": 1,
+      "logErrorCount": 0,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [
+        "cross_service_failure",
+        "multi_signal_evidence",
+        "trace_failure_chain"
+      ],
+      "supportDiversity": 4,
+      "observedLeafErrorSpanCount": 1,
+      "observedErrorAncestorSpanCount": 0
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:dd0bc24886411f8f:user-service",
+      "service": "user-service",
+      "failureFindingCount": 1,
+      "logErrorCount": 0,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [
+        "cross_service_failure",
+        "multi_signal_evidence",
+        "trace_failure_chain"
+      ],
+      "supportDiversity": 4,
+      "observedLeafErrorSpanCount": 0,
+      "observedErrorAncestorSpanCount": 1
+    }
+  ],
+  "causeCandidateRanks": [
+    {
+      "candidateId": "cause_candidate:evidence_group:dd0bc24886411f8f:postgres",
+      "service": "postgres",
+      "rank": 1,
+      "tied": false,
+      "severityRank": 2,
+      "tracePosition": "observed_leaf_failure",
+      "tracePositionRank": 2,
+      "supportDiversity": 4,
+      "failureFindingCount": 1,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing leaf span",
+        "Structural support diversity: 4",
+        "Failure findings: 1"
+      ]
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:dd0bc24886411f8f:auth-service",
+      "service": "auth-service",
+      "rank": 2,
+      "tied": false,
+      "severityRank": 2,
+      "tracePosition": "error_ancestor",
+      "tracePositionRank": 1,
+      "supportDiversity": 6,
+      "failureFindingCount": 2,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing ancestor span with error descendant",
+        "Structural support diversity: 6",
+        "Failure findings: 2"
+      ]
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:dd0bc24886411f8f:user-service",
+      "service": "user-service",
+      "rank": 3,
+      "tied": false,
+      "severityRank": 2,
+      "tracePosition": "error_ancestor",
+      "tracePositionRank": 1,
+      "supportDiversity": 4,
+      "failureFindingCount": 1,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing ancestor span with error descendant",
+        "Structural support diversity: 4",
+        "Failure findings: 1"
+      ]
+    }
+  ]
+}

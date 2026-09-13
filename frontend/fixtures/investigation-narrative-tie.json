@@ -1,0 +1,29 @@
+{
+  "evidenceCutoff": "2026-08-25T00:00:12.000Z",
+  "generatedAt": "2026-08-25T00:00:15.000Z",
+  "contextHash": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  "narrative": {
+    "summary": {
+      "text": "Postgres and redis are co-equal deterministic candidates for investigation.",
+      "findingIds": ["tie-postgres-trace", "tie-redis-trace"],
+      "signalIds": [
+        "signal:multi_signal_evidence:evidence_group:tie-postgres",
+        "signal:multi_signal_evidence:evidence_group:tie-redis"
+      ]
+    },
+    "candidates": [
+      {
+        "candidateId": "cause_candidate:evidence_group:tie-redis:redis",
+        "text": "Redis has equivalent deterministic failure facts in this snapshot.",
+        "findingIds": ["tie-redis-log", "tie-redis-trace"],
+        "signalIds": ["signal:multi_signal_evidence:evidence_group:tie-redis"]
+      },
+      {
+        "candidateId": "cause_candidate:evidence_group:tie-postgres:postgres",
+        "text": "Postgres has equivalent deterministic failure facts in this snapshot.",
+        "findingIds": ["tie-postgres-log", "tie-postgres-trace"],
+        "signalIds": ["signal:multi_signal_evidence:evidence_group:tie-postgres"]
+      }
+    ]
+  }
+}

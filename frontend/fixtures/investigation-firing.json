@@ -1,0 +1,97 @@
+{
+  "alert": {
+    "id": "alert-firing-001",
+    "ruleId": "rule-cpu-001",
+    "status": "firing",
+    "title": "High CPU",
+    "message": "cpu_usage exceeded threshold 90",
+    "startedAt": "2026-08-23T06:20:00Z",
+    "createdAt": "2026-08-23T06:20:01Z",
+    "updatedAt": "2026-08-23T06:20:01Z",
+    "service": "auth-service"
+  },
+  "window": {
+    "from": "2026-08-23T06:05:00Z",
+    "to": "2026-08-23T06:30:00Z"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-08-23T06:19:55Z",
+      "type": "metric",
+      "data": {
+        "timestamp": "2026-08-23T06:19:55Z",
+        "service": "auth-service",
+        "name": "cpu_usage",
+        "type": "gauge",
+        "value": 94,
+        "metadata": {
+          "host": "auth-02"
+        },
+        "unit": "percent"
+      }
+    },
+    {
+      "timestamp": "2026-08-23T06:20:00Z",
+      "type": "alert_fired",
+      "data": {
+        "alertId": "alert-firing-001",
+        "ruleId": "rule-cpu-001",
+        "title": "High CPU",
+        "message": "cpu_usage exceeded threshold 90"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "timestamp": "2026-08-23T06:19:55Z",
+      "service": "auth-service",
+      "name": "cpu_usage",
+      "type": "gauge",
+      "value": 94,
+      "metadata": {
+        "host": "auth-02"
+      },
+      "unit": "percent"
+    }
+  ],
+  "logs": [],
+  "traces": [],
+  "summary": {
+    "servicesInvolved": [
+      "auth-service"
+    ],
+    "errorSpans": 0,
+    "metricAnomalies": 1,
+    "logErrors": 0
+  },
+  "findings": [
+    {
+      "id": "metric_threshold:auth-service:cpu_usage:2026-08-23T06:19:55.000Z",
+      "type": "metric_threshold",
+      "severity": "warning",
+      "timestamp": "2026-08-23T06:19:55Z",
+      "message": "cpu_usage reached 94 (threshold > 90)",
+      "service": "auth-service"
+    }
+  ],
+  "signals": [],
+  "evidenceRanks": [
+    {
+      "findingId": "metric_threshold:auth-service:cpu_usage:2026-08-23T06:19:55.000Z",
+      "severity": "warning",
+      "severityRank": 1,
+      "supportScore": 0,
+      "correlationTypes": [],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: warning"
+      ]
+    }
+  ],
+  "integrityIssues": [],
+  "causeCandidates": [],
+  "causeCandidateFacts": [],
+  "causeCandidateRanks": [],
+  "correlations": [],
+  "evidenceGroups": []
+}

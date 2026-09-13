@@ -1,0 +1,41 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: observability-redis
+    ports:
+      - "6379:6379"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: observability-clickhouse
+
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+
+    environment:
+      CLICKHOUSE_DB: observability
+      CLICKHOUSE_USER: admin
+      CLICKHOUSE_PASSWORD: password
+
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+
+  postgres:
+    image: postgres:17
+    container_name: observability-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: observability
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+volumes:
+  clickhouse-data:
+  redis-data:
+  postgres-data:

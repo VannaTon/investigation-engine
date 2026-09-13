@@ -1,0 +1,196 @@
+{
+  "alert": {
+    "id": "alert-integrity-missing-001",
+    "ruleId": "rule-telemetry-integrity-002",
+    "status": "resolved",
+    "title": "Missing telemetry references",
+    "message": "Collected logs reference a missing trace and a missing span.",
+    "service": "payment-service",
+    "startedAt": "2026-08-25T04:00:00.000Z",
+    "resolvedAt": "2026-08-25T04:03:00.000Z",
+    "createdAt": "2026-08-25T04:00:01.000Z",
+    "updatedAt": "2026-08-25T04:03:00.000Z"
+  },
+  "window": {
+    "from": "2026-08-25T03:55:00.000Z",
+    "to": "2026-08-25T04:05:00.000Z"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-08-25T04:00:00.200Z",
+      "type": "log",
+      "data": {
+        "timestamp": "2026-08-25T04:00:00.200Z",
+        "service": "payment-service",
+        "level": "error",
+        "message": "Unknown trace reference",
+        "traceId": "trace-not-collected",
+        "spanId": "span-not-collected"
+      }
+    },
+    {
+      "timestamp": "2026-08-25T04:00:00.400Z",
+      "type": "log",
+      "data": {
+        "timestamp": "2026-08-25T04:00:00.400Z",
+        "service": "payment-service",
+        "level": "error",
+        "message": "Unknown span reference",
+        "traceId": "trace-integrity-existing",
+        "spanId": "span-not-collected"
+      }
+    },
+    {
+      "timestamp": "2026-08-25T04:00:01.000Z",
+      "type": "alert_fired",
+      "data": {
+        "alertId": "alert-integrity-missing-001",
+        "ruleId": "rule-telemetry-integrity-002",
+        "title": "Missing telemetry references",
+        "message": "Collected logs reference a missing trace and a missing span."
+      }
+    },
+    {
+      "timestamp": "2026-08-25T04:03:00.000Z",
+      "type": "alert_resolved",
+      "data": {
+        "alertId": "alert-integrity-missing-001",
+        "ruleId": "rule-telemetry-integrity-002",
+        "title": "Missing telemetry references"
+      }
+    }
+  ],
+  "metrics": [],
+  "logs": [
+    {
+      "timestamp": "2026-08-25T04:00:00.200Z",
+      "service": "payment-service",
+      "level": "error",
+      "message": "Unknown trace reference",
+      "traceId": "trace-not-collected",
+      "spanId": "span-not-collected"
+    },
+    {
+      "timestamp": "2026-08-25T04:00:00.400Z",
+      "service": "payment-service",
+      "level": "error",
+      "message": "Unknown span reference",
+      "traceId": "trace-integrity-existing",
+      "spanId": "span-not-collected"
+    }
+  ],
+  "traces": [
+    {
+      "traceId": "trace-integrity-existing",
+      "spanId": "span-payment-existing",
+      "service": "payment-service",
+      "operation": "capture_payment",
+      "startTime": "2026-08-25T04:00:00.000Z",
+      "endTime": "2026-08-25T04:00:00.800Z",
+      "durationMs": 800,
+      "status": "error",
+      "children": []
+    }
+  ],
+  "summary": {
+    "servicesInvolved": [
+      "payment-service"
+    ],
+    "errorSpans": 1,
+    "metricAnomalies": 0,
+    "logErrors": 2
+  },
+  "findings": [
+    {
+      "id": "finding-missing-trace-log",
+      "type": "log_error",
+      "severity": "high",
+      "timestamp": "2026-08-25T04:00:00.200Z",
+      "message": "Unknown trace reference",
+      "service": "payment-service",
+      "traceId": "trace-not-collected",
+      "spanId": "span-not-collected"
+    },
+    {
+      "id": "finding-missing-span-log",
+      "type": "log_error",
+      "severity": "high",
+      "timestamp": "2026-08-25T04:00:00.400Z",
+      "message": "Unknown span reference",
+      "service": "payment-service",
+      "traceId": "trace-integrity-existing",
+      "spanId": "span-not-collected"
+    },
+    {
+      "id": "finding-existing-trace",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-25T04:00:00.000Z",
+      "message": "Trace error in payment-service: capture_payment",
+      "service": "payment-service",
+      "traceId": "trace-integrity-existing",
+      "spanId": "span-payment-existing"
+    }
+  ],
+  "correlations": [],
+  "evidenceGroups": [],
+  "signals": [],
+  "evidenceRanks": [
+    {
+      "findingId": "finding-existing-trace",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 0,
+      "correlationTypes": [],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high"
+      ]
+    },
+    {
+      "findingId": "finding-missing-span-log",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 0,
+      "correlationTypes": [],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high"
+      ]
+    },
+    {
+      "findingId": "finding-missing-trace-log",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 0,
+      "correlationTypes": [],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high"
+      ]
+    }
+  ],
+  "integrityIssues": [
+    {
+      "id": "integrity:missing_trace_reference:trace-not-collected:2026-08-25T04:00:00.200Z",
+      "type": "missing_trace_reference",
+      "message": "Log references trace trace-not-collected, but that trace was not found",
+      "logTimestamp": "2026-08-25T04:00:00.200Z",
+      "service": "payment-service",
+      "traceId": "trace-not-collected",
+      "spanId": "span-not-collected"
+    },
+    {
+      "id": "integrity:missing_span_reference:trace-integrity-existing:span-not-collected:2026-08-25T04:00:00.400Z",
+      "type": "missing_span_reference",
+      "message": "Log references span span-not-collected, but that span was not found in trace trace-integrity-existing",
+      "logTimestamp": "2026-08-25T04:00:00.400Z",
+      "service": "payment-service",
+      "traceId": "trace-integrity-existing",
+      "spanId": "span-not-collected"
+    }
+  ],
+  "causeCandidates": [],
+  "causeCandidateFacts": [],
+  "causeCandidateRanks": []
+}

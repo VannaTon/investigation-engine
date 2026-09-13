@@ -1,0 +1,59 @@
+{
+  "alert": {
+    "id": "alert-empty-001",
+    "ruleId": "rule-empty-001",
+    "status": "resolved",
+    "title": "Investigation with no collected evidence",
+    "message": "The alert resolved before supporting telemetry was collected.",
+    "service": "edge-service",
+    "startedAt": "2026-08-24T01:00:00Z",
+    "resolvedAt": "2026-08-24T01:02:00Z",
+    "createdAt": "2026-08-24T01:00:01Z",
+    "updatedAt": "2026-08-24T01:02:00Z"
+  },
+  "window": {
+    "from": "2026-08-24T00:55:00Z",
+    "to": "2026-08-24T01:05:00Z"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-08-24T01:00:00Z",
+      "type": "alert_fired",
+      "data": {
+        "alertId": "alert-empty-001",
+        "ruleId": "rule-empty-001",
+        "title": "Investigation with no collected evidence",
+        "message": "The alert resolved before supporting telemetry was collected."
+      }
+    },
+    {
+      "timestamp": "2026-08-24T01:02:00Z",
+      "type": "alert_resolved",
+      "data": {
+        "alertId": "alert-empty-001",
+        "ruleId": "rule-empty-001",
+        "title": "Investigation with no collected evidence"
+      }
+    }
+  ],
+  "metrics": [],
+  "logs": [],
+  "traces": [],
+  "summary": {
+    "servicesInvolved": [
+      "edge-service"
+    ],
+    "errorSpans": 0,
+    "metricAnomalies": 0,
+    "logErrors": 0
+  },
+  "findings": [],
+  "correlations": [],
+  "evidenceGroups": [],
+  "signals": [],
+  "evidenceRanks": [],
+  "integrityIssues": [],
+  "causeCandidates": [],
+  "causeCandidateFacts": [],
+  "causeCandidateRanks": []
+}

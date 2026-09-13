@@ -1,0 +1,374 @@
+{
+  "alert": {
+    "id": "alert-integrity-mismatch-001",
+    "ruleId": "rule-telemetry-integrity-001",
+    "status": "resolved",
+    "title": "Service and span reference mismatch",
+    "message": "Collected telemetry includes a log whose service differs from its referenced span.",
+    "service": "billing-service",
+    "startedAt": "2026-08-25T03:00:00.000Z",
+    "resolvedAt": "2026-08-25T03:04:00.000Z",
+    "createdAt": "2026-08-25T03:00:01.000Z",
+    "updatedAt": "2026-08-25T03:04:00.000Z"
+  },
+  "window": {
+    "from": "2026-08-25T02:55:00.000Z",
+    "to": "2026-08-25T03:05:00.000Z"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-08-25T03:00:00.200Z",
+      "type": "log",
+      "data": {
+        "timestamp": "2026-08-25T03:00:00.200Z",
+        "service": "billing-service",
+        "level": "error",
+        "message": "Invoice lookup failed",
+        "traceId": "trace-integrity-mismatch",
+        "spanId": "span-auth-mismatch"
+      }
+    },
+    {
+      "timestamp": "2026-08-25T03:00:00.500Z",
+      "type": "metric",
+      "data": {
+        "timestamp": "2026-08-25T03:00:00.500Z",
+        "service": "billing-service",
+        "name": "request_queue_depth",
+        "type": "gauge",
+        "value": 42,
+        "unit": "requests"
+      }
+    },
+    {
+      "timestamp": "2026-08-25T03:00:01.000Z",
+      "type": "alert_fired",
+      "data": {
+        "alertId": "alert-integrity-mismatch-001",
+        "ruleId": "rule-telemetry-integrity-001",
+        "title": "Service and span reference mismatch",
+        "message": "Collected telemetry includes a log whose service differs from its referenced span."
+      }
+    },
+    {
+      "timestamp": "2026-08-25T03:04:00.000Z",
+      "type": "alert_resolved",
+      "data": {
+        "alertId": "alert-integrity-mismatch-001",
+        "ruleId": "rule-telemetry-integrity-001",
+        "title": "Service and span reference mismatch"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "timestamp": "2026-08-25T03:00:00.500Z",
+      "service": "billing-service",
+      "name": "request_queue_depth",
+      "type": "gauge",
+      "value": 42,
+      "unit": "requests"
+    }
+  ],
+  "logs": [
+    {
+      "timestamp": "2026-08-25T03:00:00.200Z",
+      "service": "billing-service",
+      "level": "error",
+      "message": "Invoice lookup failed",
+      "traceId": "trace-integrity-mismatch",
+      "spanId": "span-auth-mismatch"
+    }
+  ],
+  "traces": [
+    {
+      "traceId": "trace-integrity-mismatch",
+      "spanId": "span-auth-mismatch",
+      "service": "auth-service",
+      "operation": "validate_session",
+      "startTime": "2026-08-25T03:00:00.000Z",
+      "endTime": "2026-08-25T03:00:00.700Z",
+      "durationMs": 700,
+      "status": "error",
+      "children": []
+    }
+  ],
+  "summary": {
+    "servicesInvolved": [
+      "billing-service",
+      "auth-service",
+      "worker-service"
+    ],
+    "errorSpans": 1,
+    "metricAnomalies": 1,
+    "logErrors": 1
+  },
+  "findings": [
+    {
+      "id": "finding-critical-worker-stop",
+      "type": "log_error",
+      "severity": "critical",
+      "timestamp": "2026-08-25T02:59:59.900Z",
+      "message": "Worker termination evidence was recorded",
+      "service": "worker-service"
+    },
+    {
+      "id": "finding-high-log-mismatch",
+      "type": "log_error",
+      "severity": "high",
+      "timestamp": "2026-08-25T03:00:00.200Z",
+      "message": "Invoice lookup failed",
+      "service": "billing-service",
+      "traceId": "trace-integrity-mismatch",
+      "spanId": "span-auth-mismatch"
+    },
+    {
+      "id": "finding-high-trace-mismatch",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-25T03:00:00.000Z",
+      "message": "Trace error in auth-service: validate_session",
+      "service": "auth-service",
+      "traceId": "trace-integrity-mismatch",
+      "spanId": "span-auth-mismatch"
+    },
+    {
+      "id": "finding-warning-queue-depth",
+      "type": "metric_threshold",
+      "severity": "warning",
+      "timestamp": "2026-08-25T03:00:00.500Z",
+      "message": "request_queue_depth reached 42",
+      "service": "billing-service"
+    },
+    {
+      "id": "finding-info-observation",
+      "type": "log_error",
+      "severity": "info",
+      "timestamp": "2026-08-25T03:00:00.600Z",
+      "message": "Additional informational evidence was retained",
+      "service": "worker-service"
+    }
+  ],
+  "correlations": [
+    {
+      "id": "same_span:trace-integrity-mismatch:span-auth-mismatch",
+      "type": "same_span",
+      "findingIds": [
+        "finding-high-log-mismatch",
+        "finding-high-trace-mismatch"
+      ],
+      "message": "Multiple findings reference span span-auth-mismatch",
+      "traceId": "trace-integrity-mismatch",
+      "spanId": "span-auth-mismatch"
+    }
+  ],
+  "evidenceGroups": [
+    {
+      "id": "evidence_group:integrity-mismatch",
+      "findingIds": [
+        "finding-high-log-mismatch",
+        "finding-high-trace-mismatch"
+      ],
+      "correlationIds": [
+        "same_span:trace-integrity-mismatch:span-auth-mismatch"
+      ],
+      "services": [
+        "auth-service",
+        "billing-service"
+      ],
+      "traceIds": [
+        "trace-integrity-mismatch"
+      ],
+      "findingCount": 2,
+      "correlationCount": 1,
+      "findingTypes": [
+        "log_error",
+        "trace_error"
+      ],
+      "correlationTypes": [
+        "same_span"
+      ],
+      "startedAt": "2026-08-25T03:00:00.000Z",
+      "endedAt": "2026-08-25T03:00:00.200Z",
+      "message": "2 related findings across 2 services"
+    }
+  ],
+  "signals": [],
+  "evidenceRanks": [
+    {
+      "findingId": "finding-critical-worker-stop",
+      "severity": "critical",
+      "severityRank": 3,
+      "supportScore": 0,
+      "correlationTypes": [],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: critical"
+      ]
+    },
+    {
+      "findingId": "finding-high-log-mismatch",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span"
+      ]
+    },
+    {
+      "findingId": "finding-high-trace-mismatch",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span"
+      ]
+    },
+    {
+      "findingId": "finding-warning-queue-depth",
+      "severity": "warning",
+      "severityRank": 1,
+      "supportScore": 0,
+      "correlationTypes": [],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: warning"
+      ]
+    },
+    {
+      "findingId": "finding-info-observation",
+      "severity": "info",
+      "severityRank": 0,
+      "supportScore": 0,
+      "correlationTypes": [],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: info"
+      ]
+    }
+  ],
+  "integrityIssues": [
+    {
+      "id": "integrity:service_span_mismatch:trace-integrity-mismatch:span-auth-mismatch:2026-08-25T03:00:00.200Z",
+      "type": "service_span_mismatch",
+      "message": "Log service billing-service does not match referenced span service auth-service",
+      "logTimestamp": "2026-08-25T03:00:00.200Z",
+      "service": "billing-service",
+      "traceId": "trace-integrity-mismatch",
+      "spanId": "span-auth-mismatch"
+    }
+  ],
+  "causeCandidates": [
+    {
+      "id": "cause_candidate:evidence_group:integrity-mismatch:auth-service",
+      "service": "auth-service",
+      "findingIds": [
+        "finding-high-trace-mismatch"
+      ],
+      "signalIds": [],
+      "traceIds": [
+        "trace-integrity-mismatch"
+      ],
+      "startedAt": "2026-08-25T03:00:00.000Z",
+      "endedAt": "2026-08-25T03:00:00.000Z",
+      "reasons": [
+        "1 failure finding(s) observed on auth-service"
+      ]
+    },
+    {
+      "id": "cause_candidate:evidence_group:integrity-mismatch:billing-service",
+      "service": "billing-service",
+      "findingIds": [
+        "finding-high-log-mismatch"
+      ],
+      "signalIds": [],
+      "traceIds": [
+        "trace-integrity-mismatch"
+      ],
+      "startedAt": "2026-08-25T03:00:00.200Z",
+      "endedAt": "2026-08-25T03:00:00.200Z",
+      "reasons": [
+        "1 failure finding(s) observed on billing-service"
+      ]
+    }
+  ],
+  "causeCandidateFacts": [
+    {
+      "candidateId": "cause_candidate:evidence_group:integrity-mismatch:auth-service",
+      "service": "auth-service",
+      "failureFindingCount": 1,
+      "logErrorCount": 0,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [],
+      "supportDiversity": 1,
+      "observedLeafErrorSpanCount": 1,
+      "observedErrorAncestorSpanCount": 0
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:integrity-mismatch:billing-service",
+      "service": "billing-service",
+      "failureFindingCount": 1,
+      "logErrorCount": 1,
+      "traceErrorCount": 0,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [],
+      "supportDiversity": 1,
+      "observedLeafErrorSpanCount": 0,
+      "observedErrorAncestorSpanCount": 0
+    }
+  ],
+  "causeCandidateRanks": [
+    {
+      "candidateId": "cause_candidate:evidence_group:integrity-mismatch:auth-service",
+      "service": "auth-service",
+      "rank": 1,
+      "tied": false,
+      "severityRank": 2,
+      "tracePosition": "observed_leaf_failure",
+      "tracePositionRank": 2,
+      "supportDiversity": 1,
+      "failureFindingCount": 1,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing leaf span",
+        "Structural support diversity: 1",
+        "Failure findings: 1"
+      ]
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:integrity-mismatch:billing-service",
+      "service": "billing-service",
+      "rank": 2,
+      "tied": false,
+      "severityRank": 2,
+      "tracePosition": "other_failure",
+      "tracePositionRank": 0,
+      "supportDiversity": 1,
+      "failureFindingCount": 1,
+      "reasons": [
+        "Highest failure severity: high",
+        "Structural support diversity: 1",
+        "Failure findings: 1"
+      ]
+    }
+  ]
+}

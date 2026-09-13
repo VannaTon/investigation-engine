@@ -1,0 +1,330 @@
+{
+  "alert": {
+    "id": "alert-deep-trace-001",
+    "ruleId": "rule-checkout-latency-001",
+    "status": "resolved",
+    "title": "Checkout request failed across a deep trace",
+    "message": "A checkout request recorded errors across several downstream spans.",
+    "service": "gateway-service",
+    "startedAt": "2026-08-24T02:00:00Z",
+    "resolvedAt": "2026-08-24T02:06:00Z",
+    "createdAt": "2026-08-24T02:00:01Z",
+    "updatedAt": "2026-08-24T02:06:00Z"
+  },
+  "window": {
+    "from": "2026-08-24T01:55:00Z",
+    "to": "2026-08-24T02:10:00Z"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-08-24T02:00:00Z",
+      "type": "alert_fired",
+      "data": {
+        "alertId": "alert-deep-trace-001",
+        "ruleId": "rule-checkout-latency-001",
+        "title": "Checkout request failed across a deep trace",
+        "message": "A checkout request recorded errors across several downstream spans."
+      }
+    },
+    {
+      "timestamp": "2026-08-24T02:06:00Z",
+      "type": "alert_resolved",
+      "data": {
+        "alertId": "alert-deep-trace-001",
+        "ruleId": "rule-checkout-latency-001",
+        "title": "Checkout request failed across a deep trace"
+      }
+    }
+  ],
+  "metrics": [],
+  "logs": [],
+  "traces": [
+    {
+      "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+      "spanId": "span-1-20260824-long-identifier-gateway-service",
+      "service": "gateway-service",
+      "operation": "POST /checkout",
+      "startTime": "2026-08-24T02:00:00Z",
+      "endTime": "2026-08-24T02:00:01Z",
+      "durationMs": 1000,
+      "status": "ok",
+      "children": [
+        {
+          "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+          "spanId": "span-2-20260824-long-identifier-checkout-service",
+          "service": "checkout-service",
+          "operation": "create_checkout",
+          "startTime": "2026-08-24T02:00:00.02Z",
+          "endTime": "2026-08-24T02:00:01.02Z",
+          "durationMs": 915,
+          "status": "ok",
+          "children": [
+            {
+              "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+              "spanId": "span-3-20260824-long-identifier-pricing-service",
+              "service": "pricing-service",
+              "operation": "calculate_price",
+              "startTime": "2026-08-24T02:00:00.04Z",
+              "endTime": "2026-08-24T02:00:01.04Z",
+              "durationMs": 830,
+              "status": "error",
+              "children": [
+                {
+                  "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+                  "spanId": "span-4-20260824-long-identifier-inventory-service",
+                  "service": "inventory-service",
+                  "operation": "reserve_inventory",
+                  "startTime": "2026-08-24T02:00:00.06Z",
+                  "endTime": "2026-08-24T02:00:01.06Z",
+                  "durationMs": 745,
+                  "status": "error",
+                  "children": [
+                    {
+                      "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+                      "spanId": "span-5-20260824-long-identifier-order-service",
+                      "service": "order-service",
+                      "operation": "create_order",
+                      "startTime": "2026-08-24T02:00:00.08Z",
+                      "endTime": "2026-08-24T02:00:01.08Z",
+                      "durationMs": 660,
+                      "status": "error",
+                      "children": [
+                        {
+                          "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+                          "spanId": "span-6-20260824-long-identifier-payment-service",
+                          "service": "payment-service",
+                          "operation": "authorize_payment",
+                          "startTime": "2026-08-24T02:00:00.1Z",
+                          "endTime": "2026-08-24T02:00:01.1Z",
+                          "durationMs": 575,
+                          "status": "error",
+                          "children": [
+                            {
+                              "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+                              "spanId": "span-7-20260824-long-identifier-ledger-service",
+                              "service": "ledger-service",
+                              "operation": "record_transaction",
+                              "startTime": "2026-08-24T02:00:00.12Z",
+                              "endTime": "2026-08-24T02:00:01.12Z",
+                              "durationMs": 490,
+                              "status": "error",
+                              "children": [
+                                {
+                                  "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+                                  "spanId": "span-8-20260824-long-identifier-postgres-primary",
+                                  "service": "postgres-primary",
+                                  "operation": "COMMIT order",
+                                  "startTime": "2026-08-24T02:00:00.14Z",
+                                  "endTime": "2026-08-24T02:00:01.14Z",
+                                  "durationMs": 405,
+                                  "status": "error",
+                                  "children": [],
+                                  "parentSpanId": "span-7-20260824-long-identifier-ledger-service"
+                                }
+                              ],
+                              "parentSpanId": "span-6-20260824-long-identifier-payment-service"
+                            }
+                          ],
+                          "parentSpanId": "span-5-20260824-long-identifier-order-service"
+                        }
+                      ],
+                      "parentSpanId": "span-4-20260824-long-identifier-inventory-service"
+                    }
+                  ],
+                  "parentSpanId": "span-3-20260824-long-identifier-pricing-service"
+                }
+              ],
+              "parentSpanId": "span-2-20260824-long-identifier-checkout-service"
+            }
+          ],
+          "parentSpanId": "span-1-20260824-long-identifier-gateway-service"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "servicesInvolved": [
+      "gateway-service",
+      "checkout-service",
+      "pricing-service",
+      "inventory-service",
+      "order-service",
+      "payment-service",
+      "ledger-service",
+      "postgres-primary"
+    ],
+    "errorSpans": 6,
+    "metricAnomalies": 0,
+    "logErrors": 0
+  },
+  "findings": [
+    {
+      "id": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-3-20260824-long-identifier-pricing-service",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T02:00:00.04Z",
+      "message": "Trace error observed in pricing-service: calculate_price",
+      "service": "pricing-service",
+      "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+      "spanId": "span-3-20260824-long-identifier-pricing-service"
+    },
+    {
+      "id": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-4-20260824-long-identifier-inventory-service",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T02:00:00.06Z",
+      "message": "Trace error observed in inventory-service: reserve_inventory",
+      "service": "inventory-service",
+      "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+      "spanId": "span-4-20260824-long-identifier-inventory-service"
+    },
+    {
+      "id": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-5-20260824-long-identifier-order-service",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T02:00:00.08Z",
+      "message": "Trace error observed in order-service: create_order",
+      "service": "order-service",
+      "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+      "spanId": "span-5-20260824-long-identifier-order-service"
+    },
+    {
+      "id": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-6-20260824-long-identifier-payment-service",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T02:00:00.1Z",
+      "message": "Trace error observed in payment-service: authorize_payment",
+      "service": "payment-service",
+      "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+      "spanId": "span-6-20260824-long-identifier-payment-service"
+    },
+    {
+      "id": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-7-20260824-long-identifier-ledger-service",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T02:00:00.12Z",
+      "message": "Trace error observed in ledger-service: record_transaction",
+      "service": "ledger-service",
+      "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+      "spanId": "span-7-20260824-long-identifier-ledger-service"
+    },
+    {
+      "id": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-8-20260824-long-identifier-postgres-primary",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T02:00:00.14Z",
+      "message": "Trace error observed in postgres-primary: COMMIT order",
+      "service": "postgres-primary",
+      "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+      "spanId": "span-8-20260824-long-identifier-postgres-primary"
+    }
+  ],
+  "correlations": [
+    {
+      "id": "same_trace:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70",
+      "type": "same_trace",
+      "findingIds": [
+        "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-3-20260824-long-identifier-pricing-service",
+        "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-4-20260824-long-identifier-inventory-service",
+        "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-5-20260824-long-identifier-order-service",
+        "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-6-20260824-long-identifier-payment-service",
+        "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-7-20260824-long-identifier-ledger-service",
+        "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-8-20260824-long-identifier-postgres-primary"
+      ],
+      "message": "Several trace findings were observed within the same distributed trace.",
+      "traceId": "trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70"
+    }
+  ],
+  "signals": [],
+  "evidenceRanks": [
+    {
+      "findingId": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-3-20260824-long-identifier-pricing-service",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace"
+      ]
+    },
+    {
+      "findingId": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-4-20260824-long-identifier-inventory-service",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace"
+      ]
+    },
+    {
+      "findingId": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-5-20260824-long-identifier-order-service",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace"
+      ]
+    },
+    {
+      "findingId": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-6-20260824-long-identifier-payment-service",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace"
+      ]
+    },
+    {
+      "findingId": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-7-20260824-long-identifier-ledger-service",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace"
+      ]
+    },
+    {
+      "findingId": "trace_error:trace-2026-08-24-production-checkout-request-7f4a91d8b2364f97b53c6d9911e44f70:span-8-20260824-long-identifier-postgres-primary",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace"
+      ]
+    }
+  ],
+  "integrityIssues": [],
+  "causeCandidates": [],
+  "causeCandidateFacts": [],
+  "causeCandidateRanks": [],
+  "evidenceGroups": []
+}

@@ -1,0 +1,24 @@
+{
+  "name": "otel-http-json-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Real Node.js auto-instrumentation compatibility demo for the observability platform OTLP/HTTP JSON receiver.",
+  "scripts": {
+    "verify": "node scripts/verify-e2e.mjs",
+    "verify:metrics": "node scripts/verify-metrics-e2e.mjs",
+    "verify:logs": "node scripts/verify-logs-e2e.mjs",
+    "verify:unified": "node ../../node_modules/tsx/dist/cli.mjs scripts/verify-unified-investigation-e2e.mjs",
+    "verify:unified:preserve": "node ../../node_modules/tsx/dist/cli.mjs scripts/verify-unified-investigation-e2e.mjs --preserve"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/api-logs": "0.222.0",
+    "@opentelemetry/auto-instrumentations-node": "0.80.0",
+    "@opentelemetry/instrumentation": "0.222.0",
+    "redis": "6.2.1"
+  }
+}

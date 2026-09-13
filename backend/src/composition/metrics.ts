@@ -1,0 +1,10 @@
+import { redis } from "../config/redis.js";
+import { MetricsPublisher } from "../worker/publisher/metric.publisher.js";
+import { MetricService } from "../services/metric.service.js";
+import { MetricQueryService } from "../services/metric-query.service.js";
+import { MetricRepository } from "../repository/metric.repository.js";
+const repository = new MetricRepository();
+const publisher = new MetricsPublisher(redis);
+const metricService = new MetricService(publisher);
+const metricQueryService = new MetricQueryService(repository);
+export { metricService, metricQueryService };

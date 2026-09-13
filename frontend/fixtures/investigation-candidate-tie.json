@@ -1,0 +1,450 @@
+{
+  "alert": {
+    "id": "alert-candidate-tie-001",
+    "ruleId": "rule-candidate-tie-001",
+    "status": "resolved",
+    "title": "Co-equal datastore failure origins",
+    "message": "Equivalent failure evidence was observed for two datastore services.",
+    "service": "gateway-service",
+    "startedAt": "2026-08-27T05:00:01.000Z",
+    "resolvedAt": "2026-08-27T05:03:00.000Z",
+    "createdAt": "2026-08-27T05:00:01.100Z",
+    "updatedAt": "2026-08-27T05:03:00.000Z"
+  },
+  "window": {
+    "from": "2026-08-27T04:55:00.000Z",
+    "to": "2026-08-27T05:05:00.000Z"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-08-27T05:00:00.200Z",
+      "type": "log",
+      "data": {
+        "timestamp": "2026-08-27T05:00:00.200Z",
+        "service": "postgres",
+        "level": "error",
+        "message": "Postgres query failed",
+        "traceId": "trace-tie-postgres",
+        "spanId": "span-tie-postgres"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T05:00:00.300Z",
+      "type": "log",
+      "data": {
+        "timestamp": "2026-08-27T05:00:00.300Z",
+        "service": "redis",
+        "level": "error",
+        "message": "Redis command failed",
+        "traceId": "trace-tie-redis",
+        "spanId": "span-tie-redis"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T05:00:01.000Z",
+      "type": "alert_fired",
+      "data": {
+        "alertId": "alert-candidate-tie-001",
+        "ruleId": "rule-candidate-tie-001",
+        "title": "Co-equal datastore failure origins",
+        "message": "Equivalent failure evidence was observed for two datastore services."
+      }
+    },
+    {
+      "timestamp": "2026-08-27T05:03:00.000Z",
+      "type": "alert_resolved",
+      "data": {
+        "alertId": "alert-candidate-tie-001",
+        "ruleId": "rule-candidate-tie-001",
+        "title": "Co-equal datastore failure origins"
+      }
+    }
+  ],
+  "metrics": [],
+  "logs": [
+    {
+      "timestamp": "2026-08-27T05:00:00.200Z",
+      "service": "postgres",
+      "level": "error",
+      "message": "Postgres query failed",
+      "traceId": "trace-tie-postgres",
+      "spanId": "span-tie-postgres"
+    },
+    {
+      "timestamp": "2026-08-27T05:00:00.300Z",
+      "service": "redis",
+      "level": "error",
+      "message": "Redis command failed",
+      "traceId": "trace-tie-redis",
+      "spanId": "span-tie-redis"
+    }
+  ],
+  "traces": [
+    {
+      "traceId": "trace-tie-postgres",
+      "spanId": "span-tie-postgres",
+      "service": "postgres",
+      "operation": "SELECT account",
+      "startTime": "2026-08-27T05:00:00.000Z",
+      "endTime": "2026-08-27T05:00:00.500Z",
+      "durationMs": 500,
+      "status": "error",
+      "children": []
+    },
+    {
+      "traceId": "trace-tie-redis",
+      "spanId": "span-tie-redis",
+      "service": "redis",
+      "operation": "GET session",
+      "startTime": "2026-08-27T05:00:00.100Z",
+      "endTime": "2026-08-27T05:00:00.600Z",
+      "durationMs": 500,
+      "status": "error",
+      "children": []
+    }
+  ],
+  "summary": {
+    "servicesInvolved": [
+      "postgres",
+      "redis"
+    ],
+    "errorSpans": 2,
+    "metricAnomalies": 0,
+    "logErrors": 2
+  },
+  "findings": [
+    {
+      "id": "tie-postgres-log",
+      "type": "log_error",
+      "severity": "high",
+      "timestamp": "2026-08-27T05:00:00.200Z",
+      "message": "Postgres query failed",
+      "service": "postgres",
+      "traceId": "trace-tie-postgres",
+      "spanId": "span-tie-postgres"
+    },
+    {
+      "id": "tie-postgres-trace",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-27T05:00:00.000Z",
+      "message": "Trace error in postgres: SELECT account",
+      "service": "postgres",
+      "traceId": "trace-tie-postgres",
+      "spanId": "span-tie-postgres"
+    },
+    {
+      "id": "tie-redis-log",
+      "type": "log_error",
+      "severity": "high",
+      "timestamp": "2026-08-27T05:00:00.300Z",
+      "message": "Redis command failed",
+      "service": "redis",
+      "traceId": "trace-tie-redis",
+      "spanId": "span-tie-redis"
+    },
+    {
+      "id": "tie-redis-trace",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-27T05:00:00.100Z",
+      "message": "Trace error in redis: GET session",
+      "service": "redis",
+      "traceId": "trace-tie-redis",
+      "spanId": "span-tie-redis"
+    }
+  ],
+  "correlations": [
+    {
+      "id": "same_span:trace-tie-postgres:span-tie-postgres",
+      "type": "same_span",
+      "findingIds": [
+        "tie-postgres-log",
+        "tie-postgres-trace"
+      ],
+      "message": "Postgres log and trace findings reference the same span.",
+      "service": "postgres",
+      "traceId": "trace-tie-postgres",
+      "spanId": "span-tie-postgres"
+    },
+    {
+      "id": "same_span:trace-tie-redis:span-tie-redis",
+      "type": "same_span",
+      "findingIds": [
+        "tie-redis-log",
+        "tie-redis-trace"
+      ],
+      "message": "Redis log and trace findings reference the same span.",
+      "service": "redis",
+      "traceId": "trace-tie-redis",
+      "spanId": "span-tie-redis"
+    }
+  ],
+  "evidenceGroups": [
+    {
+      "id": "evidence_group:tie-postgres",
+      "findingIds": [
+        "tie-postgres-log",
+        "tie-postgres-trace"
+      ],
+      "correlationIds": [
+        "same_span:trace-tie-postgres:span-tie-postgres"
+      ],
+      "services": [
+        "postgres"
+      ],
+      "traceIds": [
+        "trace-tie-postgres"
+      ],
+      "findingCount": 2,
+      "correlationCount": 1,
+      "findingTypes": [
+        "log_error",
+        "trace_error"
+      ],
+      "correlationTypes": [
+        "same_span"
+      ],
+      "startedAt": "2026-08-27T05:00:00.000Z",
+      "endedAt": "2026-08-27T05:00:00.200Z",
+      "message": "2 related findings across 1 service"
+    },
+    {
+      "id": "evidence_group:tie-redis",
+      "findingIds": [
+        "tie-redis-log",
+        "tie-redis-trace"
+      ],
+      "correlationIds": [
+        "same_span:trace-tie-redis:span-tie-redis"
+      ],
+      "services": [
+        "redis"
+      ],
+      "traceIds": [
+        "trace-tie-redis"
+      ],
+      "findingCount": 2,
+      "correlationCount": 1,
+      "findingTypes": [
+        "log_error",
+        "trace_error"
+      ],
+      "correlationTypes": [
+        "same_span"
+      ],
+      "startedAt": "2026-08-27T05:00:00.100Z",
+      "endedAt": "2026-08-27T05:00:00.300Z",
+      "message": "2 related findings across 1 service"
+    }
+  ],
+  "signals": [
+    {
+      "id": "signal:multi_signal_evidence:evidence_group:tie-postgres",
+      "type": "multi_signal_evidence",
+      "evidenceGroupId": "evidence_group:tie-postgres",
+      "findingIds": [
+        "tie-postgres-log",
+        "tie-postgres-trace"
+      ],
+      "message": "This evidence group contains log_error and trace_error findings"
+    },
+    {
+      "id": "signal:multi_signal_evidence:evidence_group:tie-redis",
+      "type": "multi_signal_evidence",
+      "evidenceGroupId": "evidence_group:tie-redis",
+      "findingIds": [
+        "tie-redis-log",
+        "tie-redis-trace"
+      ],
+      "message": "This evidence group contains log_error and trace_error findings"
+    }
+  ],
+  "evidenceRanks": [
+    {
+      "findingId": "tie-postgres-log",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 2,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [
+        "multi_signal_evidence"
+      ],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span",
+        "Signal support: multi_signal_evidence"
+      ]
+    },
+    {
+      "findingId": "tie-postgres-trace",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 2,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [
+        "multi_signal_evidence"
+      ],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span",
+        "Signal support: multi_signal_evidence"
+      ]
+    },
+    {
+      "findingId": "tie-redis-log",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 2,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [
+        "multi_signal_evidence"
+      ],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span",
+        "Signal support: multi_signal_evidence"
+      ]
+    },
+    {
+      "findingId": "tie-redis-trace",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 2,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [
+        "multi_signal_evidence"
+      ],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span",
+        "Signal support: multi_signal_evidence"
+      ]
+    }
+  ],
+  "integrityIssues": [],
+  "causeCandidates": [
+    {
+      "id": "cause_candidate:evidence_group:tie-postgres:postgres",
+      "service": "postgres",
+      "findingIds": [
+        "tie-postgres-log",
+        "tie-postgres-trace"
+      ],
+      "signalIds": [
+        "signal:multi_signal_evidence:evidence_group:tie-postgres"
+      ],
+      "traceIds": [
+        "trace-tie-postgres"
+      ],
+      "startedAt": "2026-08-27T05:00:00.000Z",
+      "endedAt": "2026-08-27T05:00:00.200Z",
+      "reasons": [
+        "2 failure finding(s) observed on postgres",
+        "1 structural signal(s) reference this failure evidence"
+      ]
+    },
+    {
+      "id": "cause_candidate:evidence_group:tie-redis:redis",
+      "service": "redis",
+      "findingIds": [
+        "tie-redis-log",
+        "tie-redis-trace"
+      ],
+      "signalIds": [
+        "signal:multi_signal_evidence:evidence_group:tie-redis"
+      ],
+      "traceIds": [
+        "trace-tie-redis"
+      ],
+      "startedAt": "2026-08-27T05:00:00.100Z",
+      "endedAt": "2026-08-27T05:00:00.300Z",
+      "reasons": [
+        "2 failure finding(s) observed on redis",
+        "1 structural signal(s) reference this failure evidence"
+      ]
+    }
+  ],
+  "causeCandidateFacts": [
+    {
+      "candidateId": "cause_candidate:evidence_group:tie-postgres:postgres",
+      "service": "postgres",
+      "failureFindingCount": 2,
+      "logErrorCount": 1,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [
+        "multi_signal_evidence"
+      ],
+      "supportDiversity": 2,
+      "observedLeafErrorSpanCount": 1,
+      "observedErrorAncestorSpanCount": 0
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:tie-redis:redis",
+      "service": "redis",
+      "failureFindingCount": 2,
+      "logErrorCount": 1,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [
+        "multi_signal_evidence"
+      ],
+      "supportDiversity": 2,
+      "observedLeafErrorSpanCount": 1,
+      "observedErrorAncestorSpanCount": 0
+    }
+  ],
+  "causeCandidateRanks": [
+    {
+      "candidateId": "cause_candidate:evidence_group:tie-postgres:postgres",
+      "service": "postgres",
+      "rank": 1,
+      "tied": true,
+      "severityRank": 2,
+      "tracePosition": "observed_leaf_failure",
+      "tracePositionRank": 2,
+      "supportDiversity": 2,
+      "failureFindingCount": 2,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing leaf span",
+        "Structural support diversity: 2",
+        "Failure findings: 2"
+      ]
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:tie-redis:redis",
+      "service": "redis",
+      "rank": 1,
+      "tied": true,
+      "severityRank": 2,
+      "tracePosition": "observed_leaf_failure",
+      "tracePositionRank": 2,
+      "supportDiversity": 2,
+      "failureFindingCount": 2,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing leaf span",
+        "Structural support diversity: 2",
+        "Failure findings: 2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "name": "observability-platform",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsx watch src/server.ts",
+    "dev:stack": "tsx src/scripts/local-dev-stack.ts",
+    "worker": "tsx watch src/worker/server.ts",
+    "span-worker": "tsx watch src/worker/span.worker.ts",
+    "migrate:create": "node-pg-migrate create --config-file src/config/migration.config.ts",
+    "migrate:up": "node-pg-migrate up --config-file src/config/migration.config.ts",
+    "migrate:down": "node-pg-migrate down --config-file src/config/migration.config.ts",
+    "metric-worker": "tsx watch src/worker/metric.worker.ts",
+    "histogram-metric-worker": "tsx watch src/worker/histogram-metric.worker.ts",
+    "alert-recovery-worker": "tsx watch src/worker/alert-recovery.worker.ts",
+    "configure:log-recovery-storage": "tsx src/scripts/configure-log-recovery-storage.ts",
+    "configure:metric-recovery-storage": "tsx src/scripts/configure-metric-recovery-storage.ts",
+    "configure:histogram-metric-storage": "tsx src/scripts/configure-histogram-metric-storage.ts",
+    "verify:otel-investigation": "tsx src/scripts/verify-otel-investigation.ts",
+    "verify:otel-investigation:preserve": "tsx src/scripts/verify-otel-investigation.ts --preserve"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/pg": "^8.20.4",
+    "node-pg-migrate": "^9.0.0",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@clickhouse/client": "^1.23.1",
+    "@fastify/compress": "^9.2.0",
+    "@fastify/cors": "^11.3.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.11.0",
+    "fastify-plugin": "^6.0.0",
+    "redis": "^6.1.0"
+  }
+}

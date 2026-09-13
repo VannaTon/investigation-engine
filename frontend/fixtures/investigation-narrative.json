@@ -1,0 +1,45 @@
+{
+  "evidenceCutoff": "2026-08-15T06:30:00.000Z",
+  "generatedAt": "2026-08-15T06:30:02.000Z",
+  "contextHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "narrative": {
+    "summary": {
+      "text": "Observed failure evidence spans auth-service, user-service, and postgres. The deterministic ranking places postgres first for investigation based on the evidence shown on this page.",
+      "findingIds": [
+        "trace_error:trace-alert-001:span-auth-001",
+        "trace_error:trace-alert-001:span-user-001",
+        "trace_error:trace-alert-001:span-db-001"
+      ],
+      "signalIds": [
+        "signal:trace_failure_chain:evidence_group:dd0bc24886411f8f:trace-alert-001"
+      ]
+    },
+    "candidates": [
+      {
+        "candidateId": "cause_candidate:evidence_group:dd0bc24886411f8f:user-service",
+        "text": "User-service has a high-severity trace failure at an error-ancestor position with four structural support types.",
+        "findingIds": ["trace_error:trace-alert-001:span-user-001"],
+        "signalIds": ["signal:trace_failure_chain:evidence_group:dd0bc24886411f8f:trace-alert-001"]
+      },
+      {
+        "candidateId": "cause_candidate:evidence_group:dd0bc24886411f8f:postgres",
+        "text": "Postgres has a high-severity observed failing leaf with four structural support types in the deterministic evidence.",
+        "findingIds": ["trace_error:trace-alert-001:span-db-001"],
+        "signalIds": ["signal:trace_failure_chain:evidence_group:dd0bc24886411f8f:trace-alert-001"]
+      },
+      {
+        "candidateId": "cause_candidate:evidence_group:dd0bc24886411f8f:auth-service",
+        "text": "Auth-service has high-severity log and trace failures at an error-ancestor position with six structural support types.",
+        "findingIds": [
+          "log_error:auth-service:2026-08-15 06:10:00.200Z:trace-alert-001:span-auth-001",
+          "trace_error:trace-alert-001:span-auth-001"
+        ],
+        "signalIds": [
+          "signal:cross_service_failure:evidence_group:dd0bc24886411f8f",
+          "signal:multi_signal_evidence:evidence_group:dd0bc24886411f8f",
+          "signal:trace_failure_chain:evidence_group:dd0bc24886411f8f:trace-alert-001"
+        ]
+      }
+    ]
+  }
+}

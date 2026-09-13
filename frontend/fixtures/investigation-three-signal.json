@@ -1,0 +1,462 @@
+{
+  "alert": {
+    "id": "alert-unified-three-signal-001",
+    "ruleId": "rule-unified-three-signal-001",
+    "status": "firing",
+    "title": "Unified checkout failure",
+    "message": "checkout failures exceeded threshold 1",
+    "service": "demo-checkout",
+    "startedAt": "2026-09-07T07:09:37.373Z",
+    "createdAt": "2026-09-07T07:09:37.540Z",
+    "updatedAt": "2026-09-07T07:09:37.540Z"
+  },
+  "window": {
+    "from": "2026-09-07T07:09:33.142Z",
+    "to": "2026-09-07T07:09:38.207Z"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-09-07T07:09:34.170Z",
+      "type": "log",
+      "data": {
+        "timestamp": "2026-09-07T07:09:34.170Z",
+        "service": "demo-checkout",
+        "level": "error",
+        "message": "Checkout inventory unavailable",
+        "traceId": "f28f4af69971848b5469807f21f7cbd9",
+        "spanId": "799d3198920dfd89",
+        "stackTrace": "InventoryUnavailableError: inventory unavailable"
+      }
+    },
+    {
+      "timestamp": "2026-09-07T07:09:37.207Z",
+      "type": "metric",
+      "data": {
+        "timestamp": "2026-09-07T07:09:37.207Z",
+        "service": "demo-checkout",
+        "name": "checkout.failures",
+        "type": "counter",
+        "value": 1,
+        "unit": "{failure}"
+      }
+    },
+    {
+      "timestamp": "2026-09-07T07:09:37.373Z",
+      "type": "alert_fired",
+      "data": {
+        "alertId": "alert-unified-three-signal-001",
+        "ruleId": "rule-unified-three-signal-001",
+        "title": "Unified checkout failure",
+        "message": "checkout failures exceeded threshold 1"
+      }
+    },
+    {
+      "timestamp": "2026-09-07T07:09:37.836Z",
+      "type": "metric",
+      "data": {
+        "timestamp": "2026-09-07T07:09:37.836Z",
+        "service": "demo-checkout",
+        "name": "checkout.failures",
+        "type": "counter",
+        "value": 1,
+        "unit": "{failure}"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "timestamp": "2026-09-07T07:09:37.207Z",
+      "service": "demo-checkout",
+      "name": "checkout.failures",
+      "type": "counter",
+      "value": 1,
+      "unit": "{failure}"
+    },
+    {
+      "timestamp": "2026-09-07T07:09:37.836Z",
+      "service": "demo-checkout",
+      "name": "checkout.failures",
+      "type": "counter",
+      "value": 1,
+      "unit": "{failure}"
+    }
+  ],
+  "logs": [
+    {
+      "timestamp": "2026-09-07T07:09:34.170Z",
+      "service": "demo-checkout",
+      "level": "error",
+      "message": "Checkout inventory unavailable",
+      "traceId": "f28f4af69971848b5469807f21f7cbd9",
+      "spanId": "799d3198920dfd89",
+      "stackTrace": "InventoryUnavailableError: inventory unavailable"
+    }
+  ],
+  "traces": [
+    {
+      "traceId": "f28f4af69971848b5469807f21f7cbd9",
+      "spanId": "a7810c412e7fd918",
+      "service": "demo-gateway",
+      "operation": "GET /demo",
+      "startTime": "2026-09-07T07:09:34.142Z",
+      "endTime": "2026-09-07T07:09:34.180Z",
+      "durationMs": 38,
+      "status": "error",
+      "children": [
+        {
+          "traceId": "f28f4af69971848b5469807f21f7cbd9",
+          "spanId": "79de021881e08db3",
+          "parentSpanId": "a7810c412e7fd918",
+          "service": "demo-gateway",
+          "operation": "GET checkout",
+          "startTime": "2026-09-07T07:09:34.145Z",
+          "endTime": "2026-09-07T07:09:34.176Z",
+          "durationMs": 31,
+          "status": "error",
+          "children": [
+            {
+              "traceId": "f28f4af69971848b5469807f21f7cbd9",
+              "spanId": "799d3198920dfd89",
+              "parentSpanId": "79de021881e08db3",
+              "service": "demo-checkout",
+              "operation": "GET /checkout",
+              "startTime": "2026-09-07T07:09:34.168Z",
+              "endTime": "2026-09-07T07:09:34.175Z",
+              "durationMs": 7,
+              "status": "error",
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "servicesInvolved": ["demo-gateway", "demo-checkout"],
+    "errorSpans": 3,
+    "metricAnomalies": 2,
+    "logErrors": 1
+  },
+  "findings": [
+    {
+      "id": "finding-metric-checkout-1",
+      "type": "metric_threshold",
+      "severity": "warning",
+      "timestamp": "2026-09-07T07:09:37.207Z",
+      "message": "checkout.failures reached 1 (threshold >= 1)",
+      "service": "demo-checkout"
+    },
+    {
+      "id": "finding-metric-checkout-2",
+      "type": "metric_threshold",
+      "severity": "warning",
+      "timestamp": "2026-09-07T07:09:37.836Z",
+      "message": "checkout.failures reached 1 (threshold >= 1)",
+      "service": "demo-checkout"
+    },
+    {
+      "id": "finding-log-checkout",
+      "type": "log_error",
+      "severity": "high",
+      "timestamp": "2026-09-07T07:09:34.170Z",
+      "message": "Checkout inventory unavailable",
+      "service": "demo-checkout",
+      "traceId": "f28f4af69971848b5469807f21f7cbd9",
+      "spanId": "799d3198920dfd89"
+    },
+    {
+      "id": "finding-trace-gateway-server",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-09-07T07:09:34.142Z",
+      "message": "Trace error in demo-gateway: GET /demo",
+      "service": "demo-gateway",
+      "traceId": "f28f4af69971848b5469807f21f7cbd9",
+      "spanId": "a7810c412e7fd918"
+    },
+    {
+      "id": "finding-trace-gateway-client",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-09-07T07:09:34.145Z",
+      "message": "Trace error in demo-gateway: GET checkout",
+      "service": "demo-gateway",
+      "traceId": "f28f4af69971848b5469807f21f7cbd9",
+      "spanId": "79de021881e08db3"
+    },
+    {
+      "id": "finding-trace-checkout",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-09-07T07:09:34.168Z",
+      "message": "Trace error in demo-checkout: GET /checkout",
+      "service": "demo-checkout",
+      "traceId": "f28f4af69971848b5469807f21f7cbd9",
+      "spanId": "799d3198920dfd89"
+    }
+  ],
+  "correlations": [
+    {
+      "id": "correlation-checkout-same-span",
+      "type": "same_span",
+      "findingIds": ["finding-log-checkout", "finding-trace-checkout"],
+      "traceId": "f28f4af69971848b5469807f21f7cbd9",
+      "spanId": "799d3198920dfd89",
+      "message": "The checkout ERROR log and trace failure reference the same span"
+    },
+    {
+      "id": "correlation-shared-trace",
+      "type": "same_trace",
+      "findingIds": [
+        "finding-log-checkout",
+        "finding-trace-gateway-server",
+        "finding-trace-gateway-client",
+        "finding-trace-checkout"
+      ],
+      "traceId": "f28f4af69971848b5469807f21f7cbd9",
+      "message": "The failure findings occurred in the same distributed trace"
+    },
+    {
+      "id": "correlation-checkout-temporal",
+      "type": "temporal_service",
+      "findingIds": [
+        "finding-trace-checkout",
+        "finding-log-checkout",
+        "finding-metric-checkout-1",
+        "finding-metric-checkout-2"
+      ],
+      "service": "demo-checkout",
+      "message": "Trace, log and metric findings occurred on demo-checkout within 30 seconds"
+    },
+    {
+      "id": "correlation-gateway-temporal",
+      "type": "temporal_service",
+      "findingIds": [
+        "finding-trace-gateway-server",
+        "finding-trace-gateway-client"
+      ],
+      "service": "demo-gateway",
+      "message": "Gateway trace failures occurred within 30 seconds"
+    }
+  ],
+  "evidenceGroups": [
+    {
+      "id": "evidence-group-unified",
+      "findingIds": [
+        "finding-log-checkout",
+        "finding-metric-checkout-1",
+        "finding-metric-checkout-2",
+        "finding-trace-checkout",
+        "finding-trace-gateway-client",
+        "finding-trace-gateway-server"
+      ],
+      "correlationIds": [
+        "correlation-checkout-same-span",
+        "correlation-shared-trace",
+        "correlation-checkout-temporal",
+        "correlation-gateway-temporal"
+      ],
+      "services": ["demo-checkout", "demo-gateway"],
+      "traceIds": ["f28f4af69971848b5469807f21f7cbd9"],
+      "findingCount": 6,
+      "correlationCount": 4,
+      "findingTypes": ["log_error", "metric_threshold", "trace_error"],
+      "correlationTypes": ["same_span", "same_trace", "temporal_service"],
+      "startedAt": "2026-09-07T07:09:34.142Z",
+      "endedAt": "2026-09-07T07:09:37.836Z",
+      "message": "6 related findings across 2 services"
+    }
+  ],
+  "signals": [
+    {
+      "id": "signal-cross-service",
+      "type": "cross_service_failure",
+      "evidenceGroupId": "evidence-group-unified",
+      "findingIds": [
+        "finding-log-checkout",
+        "finding-trace-checkout",
+        "finding-trace-gateway-client",
+        "finding-trace-gateway-server"
+      ],
+      "services": ["demo-checkout", "demo-gateway"],
+      "message": "Error evidence was observed across 2 services"
+    },
+    {
+      "id": "signal-multi-signal",
+      "type": "multi_signal_evidence",
+      "evidenceGroupId": "evidence-group-unified",
+      "findingIds": [
+        "finding-log-checkout",
+        "finding-metric-checkout-1",
+        "finding-metric-checkout-2",
+        "finding-trace-checkout",
+        "finding-trace-gateway-client",
+        "finding-trace-gateway-server"
+      ],
+      "message": "This group contains log, metric and trace findings"
+    },
+    {
+      "id": "signal-trace-chain",
+      "type": "trace_failure_chain",
+      "evidenceGroupId": "evidence-group-unified",
+      "findingIds": [
+        "finding-trace-checkout",
+        "finding-trace-gateway-client",
+        "finding-trace-gateway-server"
+      ],
+      "traceId": "f28f4af69971848b5469807f21f7cbd9",
+      "message": "Error spans were observed across multiple trace levels"
+    }
+  ],
+  "evidenceRanks": [
+    {
+      "findingId": "finding-trace-checkout",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 6,
+      "correlationTypes": ["same_span", "same_trace", "temporal_service"],
+      "signalTypes": ["cross_service_failure", "multi_signal_evidence", "trace_failure_chain"],
+      "reasons": ["Technical severity: high", "Correlation support: same_span"]
+    },
+    {
+      "findingId": "finding-log-checkout",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 5,
+      "correlationTypes": ["same_span", "same_trace", "temporal_service"],
+      "signalTypes": ["cross_service_failure", "multi_signal_evidence"],
+      "reasons": ["Technical severity: high", "Correlation support: same_span"]
+    },
+    {
+      "findingId": "finding-trace-gateway-client",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 5,
+      "correlationTypes": ["same_trace", "temporal_service"],
+      "signalTypes": ["cross_service_failure", "multi_signal_evidence", "trace_failure_chain"],
+      "reasons": ["Technical severity: high", "Signal support: trace_failure_chain"]
+    },
+    {
+      "findingId": "finding-trace-gateway-server",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 5,
+      "correlationTypes": ["same_trace", "temporal_service"],
+      "signalTypes": ["cross_service_failure", "multi_signal_evidence", "trace_failure_chain"],
+      "reasons": ["Technical severity: high", "Signal support: trace_failure_chain"]
+    },
+    {
+      "findingId": "finding-metric-checkout-1",
+      "severity": "warning",
+      "severityRank": 1,
+      "supportScore": 2,
+      "correlationTypes": ["temporal_service"],
+      "signalTypes": ["multi_signal_evidence"],
+      "reasons": ["Technical severity: warning", "Signal support: multi_signal_evidence"]
+    },
+    {
+      "findingId": "finding-metric-checkout-2",
+      "severity": "warning",
+      "severityRank": 1,
+      "supportScore": 2,
+      "correlationTypes": ["temporal_service"],
+      "signalTypes": ["multi_signal_evidence"],
+      "reasons": ["Technical severity: warning", "Signal support: multi_signal_evidence"]
+    }
+  ],
+  "integrityIssues": [],
+  "causeCandidates": [
+    {
+      "id": "candidate-demo-checkout",
+      "service": "demo-checkout",
+      "findingIds": ["finding-log-checkout", "finding-trace-checkout"],
+      "signalIds": ["signal-cross-service", "signal-multi-signal", "signal-trace-chain"],
+      "traceIds": ["f28f4af69971848b5469807f21f7cbd9"],
+      "startedAt": "2026-09-07T07:09:34.168Z",
+      "endedAt": "2026-09-07T07:09:34.170Z",
+      "reasons": [
+        "2 failure findings observed on demo-checkout",
+        "3 structural signals reference this failure evidence"
+      ]
+    },
+    {
+      "id": "candidate-demo-gateway",
+      "service": "demo-gateway",
+      "findingIds": ["finding-trace-gateway-client", "finding-trace-gateway-server"],
+      "signalIds": ["signal-cross-service", "signal-multi-signal", "signal-trace-chain"],
+      "traceIds": ["f28f4af69971848b5469807f21f7cbd9"],
+      "startedAt": "2026-09-07T07:09:34.142Z",
+      "endedAt": "2026-09-07T07:09:34.145Z",
+      "reasons": [
+        "2 failure findings observed on demo-gateway",
+        "3 structural signals reference this failure evidence"
+      ]
+    }
+  ],
+  "causeCandidateFacts": [
+    {
+      "candidateId": "candidate-demo-checkout",
+      "service": "demo-checkout",
+      "failureFindingCount": 2,
+      "logErrorCount": 1,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": ["same_span", "same_trace", "temporal_service"],
+      "signalTypes": ["cross_service_failure", "multi_signal_evidence", "trace_failure_chain"],
+      "supportDiversity": 6,
+      "observedLeafErrorSpanCount": 1,
+      "observedErrorAncestorSpanCount": 0
+    },
+    {
+      "candidateId": "candidate-demo-gateway",
+      "service": "demo-gateway",
+      "failureFindingCount": 2,
+      "logErrorCount": 0,
+      "traceErrorCount": 2,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": ["same_trace", "temporal_service"],
+      "signalTypes": ["cross_service_failure", "multi_signal_evidence", "trace_failure_chain"],
+      "supportDiversity": 5,
+      "observedLeafErrorSpanCount": 0,
+      "observedErrorAncestorSpanCount": 2
+    }
+  ],
+  "causeCandidateRanks": [
+    {
+      "candidateId": "candidate-demo-checkout",
+      "service": "demo-checkout",
+      "rank": 1,
+      "tied": false,
+      "severityRank": 2,
+      "tracePosition": "observed_leaf_failure",
+      "tracePositionRank": 2,
+      "supportDiversity": 6,
+      "failureFindingCount": 2,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing leaf span",
+        "Structural support diversity: 6",
+        "Failure findings: 2"
+      ]
+    },
+    {
+      "candidateId": "candidate-demo-gateway",
+      "service": "demo-gateway",
+      "rank": 2,
+      "tied": false,
+      "severityRank": 2,
+      "tracePosition": "error_ancestor",
+      "tracePositionRank": 1,
+      "supportDiversity": 5,
+      "failureFindingCount": 2,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing ancestor span with error descendant",
+        "Structural support diversity: 5",
+        "Failure findings: 2"
+      ]
+    }
+  ]
+}

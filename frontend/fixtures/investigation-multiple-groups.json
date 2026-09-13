@@ -1,0 +1,545 @@
+{
+  "alert": {
+    "id": "alert-multiple-groups-001",
+    "ruleId": "rule-multi-service-errors-001",
+    "status": "resolved",
+    "title": "Separate error clusters observed",
+    "message": "Two independent sets of related telemetry were recorded in the investigation window.",
+    "service": "checkout-service",
+    "startedAt": "2026-08-24T04:00:00Z",
+    "resolvedAt": "2026-08-24T04:08:00Z",
+    "createdAt": "2026-08-24T04:00:01Z",
+    "updatedAt": "2026-08-24T04:08:00Z"
+  },
+  "window": {
+    "from": "2026-08-24T03:55:00Z",
+    "to": "2026-08-24T04:10:00Z"
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-08-24T04:00:00Z",
+      "type": "alert_fired",
+      "data": {
+        "alertId": "alert-multiple-groups-001",
+        "ruleId": "rule-multi-service-errors-001",
+        "title": "Separate error clusters observed",
+        "message": "Two independent sets of related telemetry were recorded in the investigation window."
+      }
+    },
+    {
+      "timestamp": "2026-08-24T04:08:00Z",
+      "type": "alert_resolved",
+      "data": {
+        "alertId": "alert-multiple-groups-001",
+        "ruleId": "rule-multi-service-errors-001",
+        "title": "Separate error clusters observed"
+      }
+    }
+  ],
+  "metrics": [],
+  "logs": [
+    {
+      "timestamp": "2026-08-24T04:00:01Z",
+      "service": "auth-service",
+      "level": "error",
+      "message": "session lookup failed",
+      "traceId": "trace-group-001",
+      "spanId": "span-auth-001"
+    },
+    {
+      "timestamp": "2026-08-24T04:03:01Z",
+      "service": "payment-service",
+      "level": "error",
+      "message": "ledger write failed",
+      "traceId": "trace-group-002",
+      "spanId": "span-payment-001"
+    }
+  ],
+  "traces": [
+    {
+      "traceId": "trace-group-001",
+      "spanId": "span-auth-001",
+      "service": "auth-service",
+      "operation": "validate_session",
+      "startTime": "2026-08-24T04:00:00Z",
+      "endTime": "2026-08-24T04:00:01Z",
+      "durationMs": 1000,
+      "status": "error",
+      "children": [
+        {
+          "traceId": "trace-group-001",
+          "spanId": "span-user-001",
+          "parentSpanId": "span-auth-001",
+          "service": "user-service",
+          "operation": "load_user",
+          "startTime": "2026-08-24T04:00:00.1Z",
+          "endTime": "2026-08-24T04:00:00.8Z",
+          "durationMs": 700,
+          "status": "error",
+          "children": []
+        }
+      ]
+    },
+    {
+      "traceId": "trace-group-002",
+      "spanId": "span-payment-001",
+      "service": "payment-service",
+      "operation": "capture_payment",
+      "startTime": "2026-08-24T04:03:00Z",
+      "endTime": "2026-08-24T04:03:01Z",
+      "durationMs": 1000,
+      "status": "error",
+      "children": [
+        {
+          "traceId": "trace-group-002",
+          "spanId": "span-ledger-001",
+          "parentSpanId": "span-payment-001",
+          "service": "postgres",
+          "operation": "INSERT ledger_entry",
+          "startTime": "2026-08-24T04:03:00.15Z",
+          "endTime": "2026-08-24T04:03:00.9Z",
+          "durationMs": 750,
+          "status": "error",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "servicesInvolved": [
+      "auth-service",
+      "user-service",
+      "payment-service",
+      "postgres"
+    ],
+    "errorSpans": 4,
+    "metricAnomalies": 0,
+    "logErrors": 2
+  },
+  "findings": [
+    {
+      "id": "finding-group-a-trace",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T04:00:00Z",
+      "message": "Trace error in auth-service: validate_session",
+      "service": "auth-service",
+      "traceId": "trace-group-001",
+      "spanId": "span-auth-001"
+    },
+    {
+      "id": "finding-group-a-log",
+      "type": "log_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T04:00:01Z",
+      "message": "session lookup failed",
+      "service": "auth-service",
+      "traceId": "trace-group-001",
+      "spanId": "span-auth-001"
+    },
+    {
+      "id": "finding-group-a-user",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T04:00:00.1Z",
+      "message": "Trace error in user-service: load_user",
+      "service": "user-service",
+      "traceId": "trace-group-001",
+      "spanId": "span-user-001"
+    },
+    {
+      "id": "finding-group-b-log",
+      "type": "log_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T04:03:01Z",
+      "message": "ledger write failed",
+      "service": "payment-service",
+      "traceId": "trace-group-002",
+      "spanId": "span-payment-001"
+    },
+    {
+      "id": "finding-group-b-db",
+      "type": "trace_error",
+      "severity": "high",
+      "timestamp": "2026-08-24T04:03:00.15Z",
+      "message": "Trace error in postgres: INSERT ledger_entry",
+      "service": "postgres",
+      "traceId": "trace-group-002",
+      "spanId": "span-ledger-001"
+    }
+  ],
+  "correlations": [
+    {
+      "id": "same_span:trace-group-001:span-auth-001",
+      "type": "same_span",
+      "findingIds": [
+        "finding-group-a-trace",
+        "finding-group-a-log"
+      ],
+      "message": "A log and trace finding reference the same authentication span.",
+      "service": "auth-service",
+      "traceId": "trace-group-001",
+      "spanId": "span-auth-001"
+    },
+    {
+      "id": "same_trace:trace-group-001",
+      "type": "same_trace",
+      "findingIds": [
+        "finding-group-a-log",
+        "finding-group-a-user"
+      ],
+      "message": "Authentication and user-service findings occurred within the same trace.",
+      "traceId": "trace-group-001"
+    },
+    {
+      "id": "same_trace:trace-group-002",
+      "type": "same_trace",
+      "findingIds": [
+        "finding-group-b-log",
+        "finding-group-b-db"
+      ],
+      "message": "Payment and database findings occurred within the same trace.",
+      "traceId": "trace-group-002"
+    }
+  ],
+  "evidenceGroups": [
+    {
+      "id": "evidence_group:auth-user-cluster",
+      "findingIds": [
+        "finding-group-a-trace",
+        "finding-group-a-log",
+        "finding-group-a-user"
+      ],
+      "correlationIds": [
+        "same_span:trace-group-001:span-auth-001",
+        "same_trace:trace-group-001"
+      ],
+      "services": [
+        "auth-service",
+        "user-service"
+      ],
+      "traceIds": [
+        "trace-group-001"
+      ],
+      "message": "3 related findings across 2 services",
+      "findingCount": 3,
+      "correlationCount": 2,
+      "findingTypes": [
+        "log_error",
+        "trace_error"
+      ],
+      "correlationTypes": [
+        "same_span",
+        "same_trace"
+      ],
+      "startedAt": "2026-08-24T04:00:00Z",
+      "endedAt": "2026-08-24T04:00:01Z"
+    },
+    {
+      "id": "evidence_group:payment-db-cluster",
+      "findingIds": [
+        "finding-group-b-log",
+        "finding-group-b-db"
+      ],
+      "correlationIds": [
+        "same_trace:trace-group-002"
+      ],
+      "services": [
+        "payment-service",
+        "postgres"
+      ],
+      "traceIds": [],
+      "message": "2 related findings across 2 services",
+      "findingCount": 2,
+      "correlationCount": 1,
+      "findingTypes": [
+        "log_error",
+        "trace_error"
+      ],
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "startedAt": "2026-08-24T04:03:00.15Z",
+      "endedAt": "2026-08-24T04:03:01Z"
+    }
+  ],
+  "signals": [],
+  "evidenceRanks": [
+    {
+      "findingId": "finding-group-a-log",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 2,
+      "correlationTypes": [
+        "same_span",
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span",
+        "Correlation support: same_trace"
+      ]
+    },
+    {
+      "findingId": "finding-group-a-trace",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_span"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_span"
+      ]
+    },
+    {
+      "findingId": "finding-group-a-user",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace"
+      ]
+    },
+    {
+      "findingId": "finding-group-b-db",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace"
+      ]
+    },
+    {
+      "findingId": "finding-group-b-log",
+      "severity": "high",
+      "severityRank": 2,
+      "supportScore": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "reasons": [
+        "Technical severity: high",
+        "Correlation support: same_trace"
+      ]
+    }
+  ],
+  "integrityIssues": [],
+  "causeCandidates": [
+    {
+      "id": "cause_candidate:evidence_group:auth-user-cluster:auth-service",
+      "service": "auth-service",
+      "findingIds": [
+        "finding-group-a-log",
+        "finding-group-a-trace"
+      ],
+      "signalIds": [],
+      "traceIds": [
+        "trace-group-001"
+      ],
+      "startedAt": "2026-08-24T04:00:00Z",
+      "endedAt": "2026-08-24T04:00:01Z",
+      "reasons": [
+        "2 failure finding(s) observed on auth-service"
+      ]
+    },
+    {
+      "id": "cause_candidate:evidence_group:auth-user-cluster:user-service",
+      "service": "user-service",
+      "findingIds": [
+        "finding-group-a-user"
+      ],
+      "signalIds": [],
+      "traceIds": [
+        "trace-group-001"
+      ],
+      "startedAt": "2026-08-24T04:00:00.1Z",
+      "endedAt": "2026-08-24T04:00:00.1Z",
+      "reasons": [
+        "1 failure finding(s) observed on user-service"
+      ]
+    },
+    {
+      "id": "cause_candidate:evidence_group:payment-db-cluster:payment-service",
+      "service": "payment-service",
+      "findingIds": [
+        "finding-group-b-log"
+      ],
+      "signalIds": [],
+      "traceIds": [
+        "trace-group-002"
+      ],
+      "startedAt": "2026-08-24T04:03:01Z",
+      "endedAt": "2026-08-24T04:03:01Z",
+      "reasons": [
+        "1 failure finding(s) observed on payment-service"
+      ]
+    },
+    {
+      "id": "cause_candidate:evidence_group:payment-db-cluster:postgres",
+      "service": "postgres",
+      "findingIds": [
+        "finding-group-b-db"
+      ],
+      "signalIds": [],
+      "traceIds": [
+        "trace-group-002"
+      ],
+      "startedAt": "2026-08-24T04:03:00.15Z",
+      "endedAt": "2026-08-24T04:03:00.15Z",
+      "reasons": [
+        "1 failure finding(s) observed on postgres"
+      ]
+    }
+  ],
+  "causeCandidateFacts": [
+    {
+      "candidateId": "cause_candidate:evidence_group:auth-user-cluster:auth-service",
+      "service": "auth-service",
+      "failureFindingCount": 2,
+      "logErrorCount": 1,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_span",
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "supportDiversity": 2,
+      "observedLeafErrorSpanCount": 0,
+      "observedErrorAncestorSpanCount": 1
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:auth-user-cluster:user-service",
+      "service": "user-service",
+      "failureFindingCount": 1,
+      "logErrorCount": 0,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "supportDiversity": 1,
+      "observedLeafErrorSpanCount": 1,
+      "observedErrorAncestorSpanCount": 0
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:payment-db-cluster:payment-service",
+      "service": "payment-service",
+      "failureFindingCount": 1,
+      "logErrorCount": 1,
+      "traceErrorCount": 0,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "supportDiversity": 1,
+      "observedLeafErrorSpanCount": 0,
+      "observedErrorAncestorSpanCount": 0
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:payment-db-cluster:postgres",
+      "service": "postgres",
+      "failureFindingCount": 1,
+      "logErrorCount": 0,
+      "traceErrorCount": 1,
+      "highestSeverity": "high",
+      "traceCount": 1,
+      "correlationTypes": [
+        "same_trace"
+      ],
+      "signalTypes": [],
+      "supportDiversity": 1,
+      "observedLeafErrorSpanCount": 1,
+      "observedErrorAncestorSpanCount": 0
+    }
+  ],
+  "causeCandidateRanks": [
+    {
+      "candidateId": "cause_candidate:evidence_group:auth-user-cluster:user-service",
+      "service": "user-service",
+      "rank": 1,
+      "tied": true,
+      "severityRank": 2,
+      "tracePosition": "observed_leaf_failure",
+      "tracePositionRank": 2,
+      "supportDiversity": 1,
+      "failureFindingCount": 1,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing leaf span",
+        "Structural support diversity: 1",
+        "Failure findings: 1"
+      ]
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:payment-db-cluster:postgres",
+      "service": "postgres",
+      "rank": 1,
+      "tied": true,
+      "severityRank": 2,
+      "tracePosition": "observed_leaf_failure",
+      "tracePositionRank": 2,
+      "supportDiversity": 1,
+      "failureFindingCount": 1,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing leaf span",
+        "Structural support diversity: 1",
+        "Failure findings: 1"
+      ]
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:auth-user-cluster:auth-service",
+      "service": "auth-service",
+      "rank": 3,
+      "tied": false,
+      "severityRank": 2,
+      "tracePosition": "error_ancestor",
+      "tracePositionRank": 1,
+      "supportDiversity": 2,
+      "failureFindingCount": 2,
+      "reasons": [
+        "Highest failure severity: high",
+        "Observed failing ancestor span with error descendant",
+        "Structural support diversity: 2",
+        "Failure findings: 2"
+      ]
+    },
+    {
+      "candidateId": "cause_candidate:evidence_group:payment-db-cluster:payment-service",
+      "service": "payment-service",
+      "rank": 4,
+      "tied": false,
+      "severityRank": 2,
+      "tracePosition": "other_failure",
+      "tracePositionRank": 0,
+      "supportDiversity": 1,
+      "failureFindingCount": 1,
+      "reasons": [
+        "Highest failure severity: high",
+        "Structural support diversity: 1",
+        "Failure findings: 1"
+      ]
+    }
+  ]
+}
