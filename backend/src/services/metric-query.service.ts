@@ -17,10 +17,11 @@ export class MetricQueryService {
   }
 
   async findForInvestigation(
+    applicationId: string,
     service: string,
     from: string,
     to: string,
   ): Promise<MetricEvent[]> {
-    return this.repository.findForInvestigation(service, from, to);
+    return this.repository.findForInvestigation(applicationId, service, from, to);
   }
 }

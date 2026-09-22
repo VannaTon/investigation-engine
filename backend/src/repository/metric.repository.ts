@@ -4,8 +4,10 @@ import type { MetricQueryResult } from "../types/metric-query-result.js";
 import type { MetricQuery } from "./../types/metrics-query.js";
 import type { MetricAggregateQuery } from "../types/metric-aggregate-query.js";
 import type { MetricAggregateResult } from "../types/metric-aggregate-result.js";
+import type { ApplicationTelemetry } from "../types/application.js";
 
 export type MetricRecord = {
+  application_id: string;
   timestamp: string;
   service: string;
   name: string;
@@ -24,8 +26,9 @@ export interface MetricSaveOptions {
 export class MetricRepository {
   constructor(private readonly insertClient: MetricInsertClient = clickhouse) {}
 
-  private mapToMetricEvent(row: MetricRecord): MetricEvent {
-    const event: MetricEvent = {
+  private mapToMetricEvent(row: MetricRecord): ApplicationTelemetry<MetricEvent> {
+    const event: ApplicationTelemetry<MetricEvent> = {
+      applicationId: row.application_id,
       timestamp: `${row.timestamp}Z`,
       service: row.service,
       name: row.name,
@@ -41,7 +44,9 @@ export class MetricRepository {
   }
 
   private buildWhereClause(query: MetricQuery): string {
-    const conditions: string[] = [];
+    const conditions: string[] = [
+      "application_id = {applicationId:UUID}",
+    ];
     if (query.service) {
       conditions.push("service = {service:String}");
     }
@@ -75,13 +80,14 @@ export class MetricRepository {
   `;
   }
   async save(
-    event: MetricEvent,
+    event: ApplicationTelemetry<MetricEvent>,
     options: MetricSaveOptions = {},
   ): Promise<void> {
     await this.insertClient.insert({
       table: "metrics",
       values: [
         {
+          application_id: event.applicationId,
           timestamp: event.timestamp,
           service: event.service,
           name: event.name,
@@ -110,6 +116,7 @@ export class MetricRepository {
     const result = await clickhouse.query({
       query: sql,
       query_params: {
+        applicationId: query.applicationId,
         service: query.service,
         name: query.name,
         from: query.from,
@@ -141,7 +148,10 @@ export class MetricRepository {
   }
 
   async aggregate(query: MetricAggregateQuery): Promise<MetricAggregateResult> {
-    const conditions: string[] = ["name = {name:String}"];
+    const conditions: string[] = [
+      "application_id = {applicationId:UUID}",
+      "name = {name:String}",
+    ];
 
     if (query.service) {
       conditions.push("service = {service:String}");
@@ -172,6 +182,7 @@ export class MetricRepository {
       GROUP BY name, service
     `,
       query_params: {
+        applicationId: query.applicationId,
         name: query.name,
         service: query.service,
         from: query.from,
@@ -207,6 +218,7 @@ export class MetricRepository {
     };
   }
   async findForInvestigation(
+    applicationId: string,
     service: string,
     from: string,
     to: string,
@@ -214,12 +226,14 @@ export class MetricRepository {
     const result = await clickhouse.query({
       query: `SELECT *
 FROM metrics
-WHERE service = {service:String}
+WHERE application_id = {applicationId:UUID}
+  AND service = {service:String}
   AND timestamp >= parseDateTime64BestEffort({from:String})
   AND timestamp <= parseDateTime64BestEffort({to:String})
 ORDER BY timestamp ASC
 LIMIT 500;`,
       query_params: {
+        applicationId,
         service,
         from,
         to,
@@ -232,6 +246,7 @@ LIMIT 500;`,
   }
 
   async findForAlertEvaluation(
+    applicationId: string,
     name: string,
     service: string,
     from: string,
@@ -241,7 +256,8 @@ LIMIT 500;`,
       query: `
       SELECT *
       FROM metrics
-      WHERE name = {name:String}
+      WHERE application_id = {applicationId:UUID}
+        AND name = {name:String}
         AND service = {service:String}
         AND timestamp >= parseDateTime64BestEffort({from:String})
         AND timestamp <= parseDateTime64BestEffort({to:String})
@@ -249,6 +265,7 @@ LIMIT 500;`,
       LIMIT 500;
     `,
       query_params: {
+        applicationId,
         name,
         service,
         from,
@@ -263,6 +280,7 @@ LIMIT 500;`,
   }
 
   async findForAlertRecovery(
+    applicationId: string,
     name: string,
     service: string,
     from: string,
@@ -272,7 +290,8 @@ LIMIT 500;`,
       query: `
       SELECT *
       FROM metrics
-      WHERE name = {name:String}
+      WHERE application_id = {applicationId:UUID}
+        AND name = {name:String}
         AND service = {service:String}
         AND timestamp >= parseDateTime64BestEffort({from:String})
         AND timestamp <= parseDateTime64BestEffort({to:String})
@@ -280,6 +299,7 @@ LIMIT 500;`,
       LIMIT 500;
     `,
       query_params: {
+        applicationId,
         name,
         service,
         from,

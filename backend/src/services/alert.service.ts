@@ -21,6 +21,7 @@ export class AlertService {
 
   async create(input: {
     ruleId: string;
+    applicationId: string;
     title: string;
     message: string;
     fingerprint?: string;

@@ -2,6 +2,7 @@ import { postgres } from "../config/postgres.js";
 import type { ErrorGroup } from "../types/error-group.js";
 import type { LogEvent } from "../types/log-event.js";
 import type { ErrorGroupStatus } from "../types/error-group.js";
+import type { ApplicationTelemetry } from "../types/application.js";
 
 export interface ErrorGroupOccurrenceIdentity {
   sourceStream: string;
@@ -16,7 +17,7 @@ type ErrorGroupDatabase = Pick<typeof postgres, "connect" | "query">;
 export class ErrorGroupRepository {
   constructor(private readonly database: ErrorGroupDatabase = postgres) {}
 
-  async upsert(event: LogEvent, normalizedMessage: string): Promise<void> {
+  async upsert(event: ApplicationTelemetry<LogEvent>, normalizedMessage: string): Promise<void> {
     if (!event.fingerprint) {
       throw new Error("Fingerprint is required.");
     }
@@ -24,6 +25,7 @@ export class ErrorGroupRepository {
     await this.database.query(
       `
       INSERT INTO error_groups (
+        application_id,
         fingerprint,
         normalized_message,
         normalizer_version,
@@ -39,13 +41,14 @@ export class ErrorGroupRepository {
         $2,
         $3,
         $4,
+        $5,
         1,
-        $5,
-        $5,
         $6,
+        $6,
+        $7,
         'open'
       )
-      ON CONFLICT (fingerprint)
+      ON CONFLICT (application_id, fingerprint)
       DO UPDATE SET
         occurrence_count = error_groups.occurrence_count + 1,
         last_seen = EXCLUDED.last_seen,
@@ -53,6 +56,7 @@ export class ErrorGroupRepository {
         updated_at = CURRENT_TIMESTAMP;
       `,
       [
+        event.applicationId,
         event.fingerprint,
         normalizedMessage,
         1, // normalizer_version
@@ -64,7 +68,7 @@ export class ErrorGroupRepository {
   }
 
   async upsertOnce(
-    event: LogEvent,
+    event: ApplicationTelemetry<LogEvent>,
     normalizedMessage: string,
     identity: ErrorGroupOccurrenceIdentity,
   ): Promise<ErrorGroupOccurrenceResult> {
@@ -80,17 +84,19 @@ export class ErrorGroupRepository {
       const occurrence = await client.query<{ fingerprint: string }>(
         `
         INSERT INTO error_group_occurrences (
+          application_id,
           source_stream,
           source_group,
           message_id,
           fingerprint
         )
-        VALUES ($1, $2, $3, $4)
+        VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT (source_stream, source_group, message_id)
         DO NOTHING
         RETURNING fingerprint;
         `,
         [
+          event.applicationId,
           identity.sourceStream,
           identity.sourceGroup,
           identity.messageId,
@@ -103,11 +109,12 @@ export class ErrorGroupRepository {
           `
           SELECT fingerprint
           FROM error_group_occurrences
-          WHERE source_stream = $1
-            AND source_group = $2
-            AND message_id = $3;
+          WHERE application_id = $1
+            AND source_stream = $2
+            AND source_group = $3
+            AND message_id = $4;
           `,
-          [identity.sourceStream, identity.sourceGroup, identity.messageId],
+          [event.applicationId, identity.sourceStream, identity.sourceGroup, identity.messageId],
         );
         const existingFingerprint = existing.rows[0]?.fingerprint;
 
@@ -130,6 +137,7 @@ export class ErrorGroupRepository {
       await client.query(
         `
         INSERT INTO error_groups (
+          application_id,
           fingerprint,
           normalized_message,
           normalizer_version,
@@ -145,13 +153,14 @@ export class ErrorGroupRepository {
           $2,
           $3,
           $4,
+          $5,
           1,
-          $5,
-          $5,
           $6,
+          $6,
+          $7,
           'open'
         )
-        ON CONFLICT (fingerprint)
+        ON CONFLICT (application_id, fingerprint)
         DO UPDATE SET
           occurrence_count = error_groups.occurrence_count + 1,
           last_seen = EXCLUDED.last_seen,
@@ -159,6 +168,7 @@ export class ErrorGroupRepository {
           updated_at = CURRENT_TIMESTAMP;
         `,
         [
+          event.applicationId,
           event.fingerprint,
           normalizedMessage,
           1,
@@ -182,8 +192,9 @@ export class ErrorGroupRepository {
     }
   }
 
-  async findAll(): Promise<ErrorGroup[]> {
+  async findAll(applicationId: string): Promise<ErrorGroup[]> {
     const result = await this.database.query<ErrorGroup>(`SELECT
+        application_id,
         fingerprint,
     sample_message,
     normalized_message,
@@ -195,14 +206,16 @@ export class ErrorGroupRepository {
     acknowledged_at,
     resolved_at
 FROM error_groups
-ORDER BY occurrence_count DESC;`);
+WHERE application_id = $1
+ORDER BY occurrence_count DESC;`, [applicationId]);
 
     return result.rows;
   }
 
-  async findByFingerprint(fingerprint: string): Promise<ErrorGroup | null> {
+  async findByFingerprint(applicationId: string, fingerprint: string): Promise<ErrorGroup | null> {
     const result = await this.database.query(
       `SELECT
+    application_id,
     fingerprint,
     sample_message,
     normalized_message,
@@ -212,14 +225,16 @@ ORDER BY occurrence_count DESC;`);
     example_trace_id,
     status
 FROM error_groups
-WHERE fingerprint = $1;`,
-      [fingerprint],
+WHERE application_id = $1
+  AND fingerprint = $2;`,
+      [applicationId, fingerprint],
     );
 
     return (result.rows[0] as ErrorGroup) ?? null;
   }
 
   async updateStatus(
+    applicationId: string,
     fingerprint: string,
     status: ErrorGroupStatus,
   ): Promise<void> {
@@ -227,27 +242,28 @@ WHERE fingerprint = $1;`,
       `
     UPDATE error_groups
     SET
-      status = $2,
+      status = $3,
 
       acknowledged_at =
         CASE
-          WHEN $2 = 'acknowledged'
+          WHEN $3 = 'acknowledged'
           THEN CURRENT_TIMESTAMP
           ELSE acknowledged_at
         END,
 
       resolved_at =
         CASE
-          WHEN $2 = 'resolved'
+          WHEN $3 = 'resolved'
           THEN CURRENT_TIMESTAMP
           ELSE resolved_at
         END,
 
       updated_at = CURRENT_TIMESTAMP
 
-    WHERE fingerprint = $1;
+    WHERE application_id = $1
+      AND fingerprint = $2;
     `,
-      [fingerprint, status],
+      [applicationId, fingerprint, status],
     );
   }
 }

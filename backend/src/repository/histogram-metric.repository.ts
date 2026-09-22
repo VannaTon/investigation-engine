@@ -3,6 +3,7 @@ import { clickhouse } from "../config/clickhouse.js";
 import type { HistogramMetricEvent } from "../types/histogram-metric-event.js";
 import type { HistogramMetricQuery } from "../types/histogram-metric-query.js";
 import type { HistogramMetricQueryResult } from "../types/histogram-metric-query-result.js";
+import type { ApplicationTelemetry } from "../types/application.js";
 
 const DEFAULT_QUERY_LIMIT = 50;
 export const MAX_HISTOGRAM_METRIC_QUERY_LIMIT = 100;
@@ -16,6 +17,7 @@ export interface HistogramMetricSaveOptions {
 }
 
 export interface HistogramMetricRecord {
+  application_id: string;
   timestamp: string;
   service: string;
   name: string;
@@ -127,8 +129,9 @@ function optionalTimestamp(
   }
 }
 
-function mapRecord(row: HistogramMetricRecord): HistogramMetricEvent {
-  const event: HistogramMetricEvent = {
+function mapRecord(row: HistogramMetricRecord): ApplicationTelemetry<HistogramMetricEvent> {
+  const event: ApplicationTelemetry<HistogramMetricEvent> = {
+    applicationId: row.application_id,
     timestamp: storageTimestamp(row.timestamp),
     service: row.service,
     name: row.name,
@@ -154,13 +157,14 @@ export class HistogramMetricRepository {
   ) {}
 
   async save(
-    event: HistogramMetricEvent,
+    event: ApplicationTelemetry<HistogramMetricEvent>,
     options: HistogramMetricSaveOptions,
   ): Promise<void> {
     await this.client.insert({
       table: "metric_histograms",
       values: [
         {
+          application_id: event.applicationId,
           timestamp: event.timestamp,
           service: event.service,
           name: event.name,
@@ -198,7 +202,9 @@ export class HistogramMetricRepository {
       query.cursor === undefined
         ? undefined
         : decodeHistogramMetricCursor(query.cursor);
-    const conditions: string[] = [];
+    const conditions: string[] = [
+      "application_id = {applicationId:UUID}",
+    ];
 
     if (query.service !== undefined) {
       conditions.push("service = {service:String}");
@@ -233,6 +239,7 @@ export class HistogramMetricRepository {
         " ORDER BY timestamp DESC, stream_message_id DESC " +
         "LIMIT {limit:UInt32}",
       query_params: {
+        applicationId: query.applicationId,
         service: query.service,
         name: query.name,
         from: query.from,

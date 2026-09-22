@@ -5,9 +5,10 @@ export class ErrorGroupCommandService {
   constructor(private readonly repository: ErrorGroupRepository) {}
 
   async updateStatus(
+    applicationId: string,
     fingerprint: string,
     status: ErrorGroupStatus,
   ): Promise<void> {
-    await this.repository.updateStatus(fingerprint, status);
+    await this.repository.updateStatus(applicationId, fingerprint, status);
   }
 }

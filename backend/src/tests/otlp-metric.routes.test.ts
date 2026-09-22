@@ -14,6 +14,11 @@ import {
 import { metricRoute } from "../routes/metric.routes.js";
 
 import type { MetricEvent } from "../types/metric-event.js";
+import { LOCAL_DEVELOPMENT_APPLICATION_ID } from "../types/application.js";
+
+const authenticator = {
+  authenticateAuthorizationHeader: async () => LOCAL_DEVELOPMENT_APPLICATION_ID,
+};
 
 class FakeMetricIngestionService
   implements OtlpMetricIngestionServiceLike
@@ -69,6 +74,7 @@ async function withTestApp(
 
   const routeOptions: OtlpMetricRouteOptions = {
     metricIngestionService,
+    authenticator,
   };
 
   if (options.bodyLimitBytes !== undefined) {
@@ -178,6 +184,7 @@ test("publishes a valid gauge and returns an empty OTLP response", async () => {
 
   assert.deepEqual(service.events, [
     {
+      applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
       timestamp: "1970-01-01T00:00:01.250Z",
       service: "checkout-service",
       name: "demo.active_requests",
@@ -218,6 +225,7 @@ test("publishes a cumulative monotonic Sum as a counter without changing the OTL
 
   assert.deepEqual(service.events, [
     {
+      applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
       timestamp: "1970-01-01T00:00:01.250Z",
       service: "checkout-service",
       name: "demo.requests",
@@ -680,8 +688,9 @@ test("the OTLP and legacy metrics routes coexist on separate paths", async () =>
 
   await app.register(otlpMetricRoute, {
     metricIngestionService: service,
+    authenticator,
   });
-  await app.register(metricRoute);
+  await app.register(metricRoute, { authenticator });
   await app.ready();
 
   try {

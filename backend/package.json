@@ -19,6 +19,7 @@
     "configure:log-recovery-storage": "tsx src/scripts/configure-log-recovery-storage.ts",
     "configure:metric-recovery-storage": "tsx src/scripts/configure-metric-recovery-storage.ts",
     "configure:histogram-metric-storage": "tsx src/scripts/configure-histogram-metric-storage.ts",
+    "configure:application-identity-storage": "tsx src/scripts/configure-application-identity-storage.ts",
     "verify:otel-investigation": "tsx src/scripts/verify-otel-investigation.ts",
     "verify:otel-investigation:preserve": "tsx src/scripts/verify-otel-investigation.ts --preserve"
   },

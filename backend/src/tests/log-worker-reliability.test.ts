@@ -17,10 +17,15 @@ import {
 } from "../worker/processor/log.processor.js";
 import type { StreamProcessingContext } from "../worker/processor/processor.js";
 import { StreamProcessingError } from "../worker/stream-processing.error.js";
+import {
+  LOCAL_DEVELOPMENT_APPLICATION_ID,
+  type ApplicationTelemetry,
+} from "../types/application.js";
 
 const MESSAGE_ID = "1788739200000-0";
 const CONSUMER_NAME = "log-workers-test";
-const logEvent: LogEvent = {
+const logEvent: ApplicationTelemetry<LogEvent> = {
+  applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
   timestamp: "2026-09-07T08:00:00.000Z",
   service: "phase6d-test",
   level: "error",

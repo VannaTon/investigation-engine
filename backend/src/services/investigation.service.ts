@@ -12,8 +12,8 @@ export class InvestigationService {
     private readonly metricQueryService: MetricQueryService,
   ) {}
 
-  async find(fingerprint: string): Promise<Investigation> {
-    const group = await this.errorGroupQueryService.find(fingerprint);
+  async find(applicationId: string, fingerprint: string): Promise<Investigation> {
+    const group = await this.errorGroupQueryService.find(applicationId, fingerprint);
 
     if (!group) {
       throw new Error("Error group not found.");
@@ -32,6 +32,7 @@ export class InvestigationService {
 
     const logs = await this.logQueryService.find({
       fingerprint,
+      applicationId,
     });
 
     const traceIds = [
@@ -43,7 +44,7 @@ export class InvestigationService {
     ];
 
     const traces = await Promise.all(
-      traceIds.map((traceId) => this.traceQueryService.find(traceId)),
+      traceIds.map((traceId) => this.traceQueryService.find(applicationId, traceId)),
     );
 
     const services = [...new Set(logs.data.map((log) => log.service))];
@@ -51,6 +52,7 @@ export class InvestigationService {
     const metrics = await Promise.all(
       services.map((service) =>
         this.metricQueryService.findForInvestigation(
+          applicationId,
           service,
           metricsFrom,
           metricsTo,

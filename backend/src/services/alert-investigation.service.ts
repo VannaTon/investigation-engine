@@ -212,6 +212,7 @@ export class AlertInvestigationService {
     ).toISOString();
 
     const traceIds = await this.traceQueryService.findCandidateTraceIds(
+      alert.applicationId,
       alert.service,
       from,
       to,
@@ -220,14 +221,15 @@ export class AlertInvestigationService {
     const traces = (
       await Promise.all(
         traceIds.map((traceId) =>
-          this.traceQueryService.findForInvestigation(traceId, from, to),
+          this.traceQueryService.findForInvestigation(alert.applicationId, traceId, from, to),
         ),
       )
     ).flat();
 
     const [metrics, logs] = await Promise.all([
-      this.metricRepository.findForInvestigation(alert.service, from, to),
+      this.metricRepository.findForInvestigation(alert.applicationId, alert.service, from, to),
       this.logRepository.findRelevantForInvestigation(
+        alert.applicationId,
         alert.service,
         traceIds,
         from,

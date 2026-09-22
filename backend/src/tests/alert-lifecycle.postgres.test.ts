@@ -39,7 +39,8 @@ test("real PostgreSQL lifecycle transactions and races", {
     created = true;
     t.diagnostic("Disposable schema created; creating test tables.");
     await pool.query(`CREATE TABLE alerts (
-      id uuid PRIMARY KEY, rule_id uuid, status text NOT NULL, title text, message text,
+      id uuid PRIMARY KEY, rule_id uuid, application_id uuid NOT NULL,
+      status text NOT NULL, title text, message text,
       fingerprint text, service text, trace_id text, started_at timestamptz,
       acknowledged_at timestamptz, resolved_at timestamptz,
       created_at timestamptz DEFAULT CURRENT_TIMESTAMP, updated_at timestamptz DEFAULT CURRENT_TIMESTAMP
@@ -53,7 +54,10 @@ test("real PostgreSQL lifecycle transactions and races", {
     t.diagnostic("Disposable tables ready; exercising the real lifecycle path.");
     async function seed(withInvestigation = true) {
       const id = randomUUID();
-      await pool.query("INSERT INTO alerts (id, rule_id, status, title, message, started_at) VALUES ($1, $2, 'firing', 'test', 'test', CURRENT_TIMESTAMP)", [id, randomUUID()]);
+      await pool.query(
+        "INSERT INTO alerts (id, rule_id, application_id, status, title, message, started_at) VALUES ($1, $2, $3, 'firing', 'test', 'test', CURRENT_TIMESTAMP)",
+        [id, randomUUID(), randomUUID()],
+      );
       if (withInvestigation) await pool.query("INSERT INTO alert_investigations (id, alert_id, default_window_from) VALUES ($1, $2, CURRENT_TIMESTAMP)", [randomUUID(), id]);
       return id;
     }

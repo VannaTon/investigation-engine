@@ -35,6 +35,7 @@ const causeCandidateRanks =
 const investigation: InvestigationResponseV1 = {
   alert: {
     id: "alert-tied-leaves",
+    applicationId: "00000000-0000-4000-8000-000000000001",
     ruleId: "rule-tied-leaves",
     status: "firing",
     title: "Two observed failing leaves",

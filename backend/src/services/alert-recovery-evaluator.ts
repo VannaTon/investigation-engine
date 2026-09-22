@@ -27,7 +27,7 @@ export class AlertRecoveryEvaluator {
   }
 
   async evaluateAlert(
-    alert: { id: string; ruleId: string },
+    alert: { id: string; ruleId: string; applicationId: string },
     ruleConfig: MetricThresholdRuleConfig,
     now: Date = new Date(),
   ) {
@@ -36,6 +36,7 @@ export class AlertRecoveryEvaluator {
     );
 
     const metrics = await this.metricRepository.findForAlertRecovery(
+      alert.applicationId,
       ruleConfig.metricName,
       ruleConfig.service!,
       from.toISOString(),

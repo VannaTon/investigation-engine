@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { createInterface } from "node:readline";
@@ -7,6 +7,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 import { createClient } from "redis";
+import { checkoutDemoRule, checkoutIncident } from "../src/checkout-incident.mjs";
 
 import {
   compareInvestigationCauseCandidateRanks,
@@ -18,9 +19,53 @@ const demoRoot = path.resolve(
   "..",
 );
 const backendUrl = process.env.BACKEND_URL ?? "http://127.0.0.1:3000";
+const defaultDevelopmentApplicationId =
+  "00000000-0000-4000-8000-000000000001";
+const applicationId =
+  process.env.DEMO_APPLICATION_ID?.trim() ||
+  defaultDevelopmentApplicationId;
+const demoIngestionKey = process.env.DEMO_INGESTION_KEY?.trim() || undefined;
+delete process.env.DEMO_INGESTION_KEY;
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(applicationId)) {
+  throw new Error("DEMO_APPLICATION_ID must be a UUID.");
+}
+if (
+  demoIngestionKey !== undefined &&
+  !/^op_ingest_[a-f0-9]{16}_[A-Za-z0-9_-]{43}$/.test(demoIngestionKey)
+) {
+  throw new Error("DEMO_INGESTION_KEY is malformed.");
+}
+
+function positiveSafeInteger(name, value, fallback) {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error(name + " must be a positive safe integer.");
+  }
+  return parsed;
+}
+
 const redisUrl = process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
 const gatewayPort = Number(process.env.GATEWAY_PORT ?? 41_001);
 const checkoutPort = Number(process.env.CHECKOUT_PORT ?? 41_002);
+const serviceStartupTimeoutMs = positiveSafeInteger(
+  "DEMO_SERVICE_STARTUP_TIMEOUT_MS",
+  process.env.DEMO_SERVICE_STARTUP_TIMEOUT_MS,
+  90_000,
+);
+const requestTimeoutMs = positiveSafeInteger(
+  "DEMO_REQUEST_TIMEOUT_MS",
+  process.env.DEMO_REQUEST_TIMEOUT_MS,
+  30_000,
+);
+const drainTimeoutMs = positiveSafeInteger(
+  "DEMO_DRAIN_TIMEOUT_MS",
+  process.env.DEMO_DRAIN_TIMEOUT_MS,
+  90_000,
+);
+const esmInstrumentationHook =
+  'data:text/javascript,import { register } from "node:module"; ' +
+  'import { pathToFileURL } from "node:url"; ' +
+  'register("%40opentelemetry/instrumentation/hook.mjs", pathToFileURL("./"));';
 const protocol = "http/json";
 const compression = "none";
 const preserveInvestigation = process.argv.includes("--preserve");
@@ -33,8 +78,15 @@ function alphabeticToken(length = 20) {
     .join("");
 }
 
+function fetchWithTimeout(input, init = {}) {
+  return fetch(input, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(requestTimeoutMs),
+  });
+}
+
 async function requestJson(pathname, init = {}, expectedStatus = 200) {
-  const response = await fetch(backendUrl + pathname, init);
+  const response = await fetchWithTimeout(backendUrl + pathname, init);
   const text = await response.text();
   let body;
 
@@ -63,9 +115,34 @@ async function requestJson(pathname, init = {}, expectedStatus = 200) {
 
 function serviceEnvironment(serviceName, runToken, metricName) {
   const emitsFailureSignals = serviceName === "demo-checkout";
+  const {
+    OTEL_EXPORTER_OTLP_HEADERS: ignoredGeneralHeaders,
+    OTEL_EXPORTER_OTLP_TRACES_HEADERS: ignoredTraceHeaders,
+    OTEL_EXPORTER_OTLP_METRICS_HEADERS: ignoredMetricHeaders,
+    OTEL_EXPORTER_OTLP_LOGS_HEADERS: ignoredLogHeaders,
+    ...baseEnvironment
+  } = process.env;
+  void ignoredGeneralHeaders;
+  void ignoredTraceHeaders;
+  void ignoredMetricHeaders;
+  void ignoredLogHeaders;
+  const authenticatedExporter =
+    demoIngestionKey === undefined
+      ? {}
+      : (() => {
+          const value =
+            "Authorization=" + encodeURIComponent("Bearer " + demoIngestionKey);
+          return {
+            OTEL_EXPORTER_OTLP_HEADERS: value,
+            OTEL_EXPORTER_OTLP_TRACES_HEADERS: value,
+            OTEL_EXPORTER_OTLP_METRICS_HEADERS: value,
+            OTEL_EXPORTER_OTLP_LOGS_HEADERS: value,
+          };
+        })();
 
   return {
-    ...process.env,
+    ...baseEnvironment,
+    ...authenticatedExporter,
     OTEL_SERVICE_NAME: serviceName,
     OTEL_RESOURCE_ATTRIBUTES:
       "deployment.environment.name=phase7,demo.run_token=" + runToken,
@@ -75,23 +152,26 @@ function serviceEnvironment(serviceName, runToken, metricName) {
     OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: backendUrl + "/v1/traces",
     OTEL_EXPORTER_OTLP_TRACES_PROTOCOL: protocol,
     OTEL_EXPORTER_OTLP_TRACES_COMPRESSION: compression,
+    OTEL_EXPORTER_OTLP_TRACES_TIMEOUT: "30000",
     OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:
       backendUrl + "/otlp/v1/metrics",
     OTEL_EXPORTER_OTLP_METRICS_PROTOCOL: protocol,
     OTEL_EXPORTER_OTLP_METRICS_COMPRESSION: compression,
+    OTEL_EXPORTER_OTLP_METRICS_TIMEOUT: "25000",
     OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: backendUrl + "/otlp/v1/logs",
     OTEL_EXPORTER_OTLP_LOGS_PROTOCOL: protocol,
     OTEL_EXPORTER_OTLP_LOGS_COMPRESSION: compression,
+    OTEL_EXPORTER_OTLP_LOGS_TIMEOUT: "30000",
     OTEL_PROPAGATORS: "tracecontext,baggage",
     OTEL_TRACES_SAMPLER: "always_on",
     OTEL_NODE_ENABLED_INSTRUMENTATIONS: "http",
     OTEL_NODE_RESOURCE_DETECTORS: "env,process",
     OTEL_BSP_SCHEDULE_DELAY: "200",
-    OTEL_BSP_EXPORT_TIMEOUT: "30000",
+    OTEL_BSP_EXPORT_TIMEOUT: "60000",
     OTEL_BLRP_SCHEDULE_DELAY: "200",
-    OTEL_BLRP_EXPORT_TIMEOUT: "30000",
-    OTEL_METRIC_EXPORT_INTERVAL: "5000",
-    OTEL_METRIC_EXPORT_TIMEOUT: "10000",
+    OTEL_BLRP_EXPORT_TIMEOUT: "60000",
+    OTEL_METRIC_EXPORT_INTERVAL: "30000",
+    OTEL_METRIC_EXPORT_TIMEOUT: "30000",
     OTEL_LOG_LEVEL: "error",
     DEMO_UNIFIED_RUN_TOKEN: runToken,
     DEMO_UNIFIED_METRIC_NAME: metricName,
@@ -104,7 +184,8 @@ function startService(serviceName, sourceFile, runToken, metricName) {
   const child = spawn(
     process.execPath,
     [
-      "--experimental-loader=@opentelemetry/instrumentation/hook.mjs",
+      "--import",
+      esmInstrumentationHook,
       "--import",
       "@opentelemetry/auto-instrumentations-node/register",
       path.join(demoRoot, "src", sourceFile),
@@ -127,16 +208,22 @@ function startService(serviceName, sourceFile, runToken, metricName) {
   });
   const timeout = setTimeout(() => {
     rejectReady(
-      new Error(serviceName + " did not report readiness within 30 seconds."),
+      new Error(serviceName + " did not report readiness within " + String(serviceStartupTimeoutMs) + " ms."),
     );
-  }, 30_000);
+  }, serviceStartupTimeoutMs);
+
+  function redactSecret(value) {
+    if (demoIngestionKey === undefined) return value;
+    return value.split(demoIngestionKey).join("[REDACTED_INGESTION_KEY]");
+  }
 
   function observe(line, channel) {
-    output.push(channel + ": " + line);
-    console.log("[" + serviceName + "] " + channel + ": " + line);
+    const safeLine = redactSecret(line);
+    output.push(channel + ": " + safeLine);
+    console.log("[" + serviceName + "] " + channel + ": " + safeLine);
 
     try {
-      const record = JSON.parse(line);
+      const record = JSON.parse(safeLine);
       if (record.event === "demo_service_started") {
         ready = true;
         clearTimeout(timeout);
@@ -195,7 +282,7 @@ async function stopService(child) {
 }
 
 async function invokeFailure() {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     "http://127.0.0.1:" + gatewayPort + "/demo?mode=error",
   );
   const body = await response.json();
@@ -216,9 +303,12 @@ function flattenTrace(nodes) {
 async function waitForTrace(traceId) {
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
-    const response = await fetch(
-      backendUrl + "/v1/traces/" + encodeURIComponent(traceId),
+    const url = new URL(
+      "/v1/traces/" + encodeURIComponent(traceId),
+      backendUrl,
     );
+    url.searchParams.set("applicationId", applicationId);
+    const response = await fetchWithTimeout(url);
     if (response.ok) {
       const tree = await response.json();
       const spans = flattenTrace(tree);
@@ -230,14 +320,15 @@ async function waitForTrace(traceId) {
 }
 
 async function waitForLog(traceId, spanId, runToken) {
-  const message = "Phase 7 checkout inventory failure " + runToken;
+  const message = checkoutIncident.logMessage;
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     const url = new URL("/v1/logs", backendUrl);
+    url.searchParams.set("applicationId", applicationId);
     url.searchParams.set("traceId", traceId);
     url.searchParams.set("service", "demo-checkout");
     url.searchParams.set("level", "error");
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (response.ok) {
       const body = await response.json();
       const matches = (body.data ?? []).filter(
@@ -264,10 +355,11 @@ async function waitForMetric(metricName, runToken) {
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     const url = new URL("/v1/metrics", backendUrl);
+    url.searchParams.set("applicationId", applicationId);
     url.searchParams.set("service", "demo-checkout");
     url.searchParams.set("name", metricName);
     url.searchParams.set("limit", "100");
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (response.ok) {
       const body = await response.json();
       const matches = (body.data ?? []).filter(
@@ -419,10 +511,11 @@ async function waitForDrainedGroups(redis) {
     ["metrics", "metric_workers"],
     ["logs", "log-workers"],
   ];
-  const deadline = Date.now() + 15_000;
+  const deadline = Date.now() + drainTimeoutMs;
+  let lastStates = [];
 
   while (Date.now() < deadline) {
-    const states = await Promise.all(
+    lastStates = await Promise.all(
       groups.map(async ([stream, group]) => {
         const pending = await redis.xPending(stream, group);
         const info = await redis.xInfoGroups(stream);
@@ -435,13 +528,20 @@ async function waitForDrainedGroups(redis) {
         };
       }),
     );
-    if (states.every((state) => state.pending === 0 && state.lag === 0)) {
-      return states;
+    if (
+      lastStates.every((state) => state.pending === 0 && state.lag === 0)
+    ) {
+      return lastStates;
     }
     await delay(100);
   }
 
-  throw new Error("Telemetry consumer groups did not drain within 15 seconds.");
+  throw new Error(
+    "Telemetry consumer groups did not drain within " +
+      String(drainTimeoutMs) +
+      " ms: " +
+      JSON.stringify(lastStates),
+  );
 }
 
 async function matchingStreamEntries(redis, stream, runToken) {
@@ -457,6 +557,17 @@ async function matchingStreamEntries(redis, stream, runToken) {
       return false;
     }
   });
+}
+
+function assertStreamApplicationIdentity(entries) {
+  for (const entry of entries) {
+    const event = JSON.parse(entry.message.event);
+    assert.equal(
+      event.applicationId,
+      applicationId,
+      "Redis event must use the authenticated application identity.",
+    );
+  }
 }
 
 async function deleteCreatedRule() {
@@ -477,30 +588,18 @@ async function verify() {
 
   try {
     const runToken = alphabeticToken();
-    const metricName = "phase7_checkout_failures_" + runToken;
+    const metricName = "checkout_failures_" + runToken;
     const dlqBefore = await redis.xLen("dlq");
     const rule = await requestJson(
       "/v1/alert-rules",
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          name: "Phase 7 unified OTLP investigation " + randomUUID(),
-          type: "metric_threshold",
-          enabled: true,
-          config: {
-            metricName,
-            service: "demo-checkout",
-            operator: ">=",
-            threshold: 1,
-            windowMinutes: 5,
-            recoveryWindowMinutes: 5,
-            stalenessMinutes: 5,
-          },
-        }),
+        body: JSON.stringify(checkoutDemoRule(metricName, applicationId)),
       },
       201,
     );
+    assert.equal(rule.applicationId, applicationId);
     createdRuleId = rule.id;
 
     const checkout = startService(
@@ -522,6 +621,10 @@ async function verify() {
     const { tree, spans } = await waitForTrace(traceId);
     assert.equal(spans.length, 3);
     assert.equal(spans.every((span) => span.status === "error"), true);
+    assert.equal(
+      spans.every((span) => span.applicationId === applicationId),
+      true,
+    );
     const checkoutSpans = spans.filter(
       (span) => span.service === "demo-checkout",
     );
@@ -534,12 +637,22 @@ async function verify() {
       waitForMetric(metricName, runToken),
       waitForAlert(rule.id),
     ]);
+    assert.equal(log.applicationId, applicationId);
+    assert.equal(
+      initialMetrics.every((entry) => entry.applicationId === applicationId),
+      true,
+    );
+    assert.equal(alert.applicationId, applicationId);
     await Promise.all(
       [...children].reverse().map((child) => stopService(child)),
     );
     const drainedGroups = await waitForDrainedGroups(redis);
     const metrics = await waitForMetric(metricName, runToken);
     assert.ok(metrics.length >= initialMetrics.length);
+    assert.equal(
+      metrics.every((entry) => entry.applicationId === applicationId),
+      true,
+    );
     const window = traceWindow(spans, log, metrics);
 
     await requestJson(
@@ -553,6 +666,7 @@ async function verify() {
     const investigation = await requestJson(
       "/v1/alerts/" + encodeURIComponent(alert.id) + "/investigation",
     );
+    assert.equal(investigation.alert.applicationId, applicationId);
     const ranking = verifyInvestigation(
       investigation,
       traceId,
@@ -568,6 +682,9 @@ async function verify() {
     assert.equal(spanEntries.length, 3);
     assert.ok(metricEntries.length >= metrics.length);
     assert.equal(logEntries.length, 1);
+    assertStreamApplicationIdentity(spanEntries);
+    assertStreamApplicationIdentity(metricEntries);
+    assertStreamApplicationIdentity(logEntries);
     const dlqAfter = await redis.xLen("dlq");
     assert.equal(dlqAfter, dlqBefore);
 
@@ -576,6 +693,7 @@ async function verify() {
       phase: "7B",
       protocol,
       compression,
+      applicationId,
       runToken,
       traceId,
       checkoutSpanId: checkoutSpan.spanId,

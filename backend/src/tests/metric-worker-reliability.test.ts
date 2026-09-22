@@ -17,10 +17,15 @@ import {
 } from "../worker/processor/metric.processor.js";
 import type { StreamProcessingContext } from "../worker/processor/processor.js";
 import { StreamProcessingError } from "../worker/stream-processing.error.js";
+import {
+  LOCAL_DEVELOPMENT_APPLICATION_ID,
+  type ApplicationTelemetry,
+} from "../types/application.js";
 
 const MESSAGE_ID = "1788594646353-0";
 const CONSUMER_NAME = "metric_workers-test";
-const metric: MetricEvent = {
+const metric: ApplicationTelemetry<MetricEvent> = {
+  applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
   timestamp: "2026-09-05T07:50:46.336Z",
   service: "phase5e-test",
   name: "nodejs.eventloop.time",

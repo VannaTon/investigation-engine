@@ -2,7 +2,7 @@ import { clickhouse } from "../config/clickhouse.js";
 import type { LogEvent } from "../types/log-event.js";
 import type { LogQuery } from "../types/log.query.js";
 import type { LogQueryResult } from "../types/log-query-result.js";
-import { postgres } from "../config/postgres.js";
+import type { ApplicationTelemetry } from "../types/application.js";
 
 type LogInsertClient = Pick<typeof clickhouse, "insert">;
 
@@ -11,6 +11,7 @@ export interface LogSaveOptions {
 }
 
 type LogRecord = {
+  application_id: string;
   timestamp: string;
   service: string;
   level: string;
@@ -26,8 +27,9 @@ type LogRecord = {
 export class LogRepository {
   constructor(private readonly insertClient: LogInsertClient = clickhouse) {}
 
-  private mapToLogEvent(row: LogRecord): LogEvent {
-    const event: LogEvent = {
+  private mapToLogEvent(row: LogRecord): ApplicationTelemetry<LogEvent> {
+    const event: ApplicationTelemetry<LogEvent> = {
+      applicationId: row.application_id,
       timestamp: `${row.timestamp}Z`,
       service: row.service,
       level: row.level as LogEvent["level"],
@@ -55,7 +57,9 @@ export class LogRepository {
   }
 
   private buildWhereClause(query: LogQuery): string {
-    const conditions: string[] = [];
+    const conditions: string[] = [
+      "application_id = {applicationId:UUID}",
+    ];
 
     if (query.service) {
       conditions.push("service = {service:String}");
@@ -103,13 +107,14 @@ export class LogRepository {
   }
 
   async save(
-    event: LogEvent,
+    event: ApplicationTelemetry<LogEvent>,
     options: LogSaveOptions = {},
   ): Promise<void> {
     await this.insertClient.insert({
       table: "logs",
       values: [
         {
+          application_id: event.applicationId,
           timestamp: event.timestamp,
           service: event.service,
           level: event.level,
@@ -140,6 +145,7 @@ export class LogRepository {
     const result = await clickhouse.query({
       query: sql,
       query_params: {
+        applicationId: query.applicationId,
         service: query.service,
         level: query.level,
         from: query.from,
@@ -175,6 +181,7 @@ export class LogRepository {
   }
 
   async findForInvestigation(
+    applicationId: string,
     service: string,
     from: string,
     to: string,
@@ -183,13 +190,15 @@ export class LogRepository {
       query: `
       SELECT *
       FROM logs
-      WHERE service = {service:String}
+      WHERE application_id = {applicationId:UUID}
+        AND service = {service:String}
         AND timestamp >= parseDateTime64BestEffort({from:String})
         AND timestamp <= parseDateTime64BestEffort({to:String})
       ORDER BY timestamp ASC
       LIMIT 500;
     `,
       query_params: {
+        applicationId,
         service,
         from,
         to,
@@ -203,6 +212,7 @@ export class LogRepository {
   }
 
   async findRelevantForInvestigation(
+    applicationId: string,
     alertService: string,
     incidentTraceIds: string[],
     from: string,
@@ -212,7 +222,8 @@ export class LogRepository {
       query: `
       SELECT *
       FROM logs
-      WHERE (
+      WHERE application_id = {applicationId:UUID}
+        AND (
           service = {alertService:String}
           OR trace_id IN {incidentTraceIds:Array(String)}
         )
@@ -222,6 +233,7 @@ export class LogRepository {
       LIMIT 500;
     `,
       query_params: {
+        applicationId,
         alertService,
         incidentTraceIds,
         from,
@@ -235,16 +247,24 @@ export class LogRepository {
     return rows.map((row) => this.mapToLogEvent(row));
   }
 
-  async findByFingerprint(fingerprint: string): Promise<LogQueryResult> {
-    const result = await postgres.query(
-      `SELECT *
+  async findByFingerprint(
+    applicationId: string,
+    fingerprint: string,
+  ): Promise<LogQueryResult> {
+    const result = await clickhouse.query({
+      query: `SELECT *
 FROM logs
-WHERE fingerprint = {fingerprint:String}
+WHERE application_id = {applicationId:UUID}
+  AND fingerprint = {fingerprint:String}
 ORDER BY timestamp DESC
-LIMIT 100; `,
-      [fingerprint],
-    );
-
-    return result.rows[0];
+LIMIT 100;`,
+      query_params: { applicationId, fingerprint },
+      format: "JSONEachRow",
+    });
+    const rows = await result.json<LogRecord>();
+    return {
+      data: rows.map((row) => this.mapToLogEvent(row)),
+      hasMore: false,
+    };
   }
 }

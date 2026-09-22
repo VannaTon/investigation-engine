@@ -21,7 +21,7 @@ test("browser lifecycle PATCH preflight allows existing frontend origins and JSO
       });
       assert.equal(response.statusCode, 204);
       assert.equal(response.headers["access-control-allow-origin"], origin);
-      assert.deepEqual(String(response.headers["access-control-allow-methods"]).split(",").map((value) => value.trim()), ["GET", "HEAD", "POST", "PATCH"]);
+      assert.deepEqual(String(response.headers["access-control-allow-methods"]).split(",").map((value) => value.trim()), ["GET", "HEAD", "POST", "PATCH", "DELETE"]);
       assert.match(String(response.headers["access-control-allow-headers"]), /content-type/i);
     }
     assert.equal(calls, 0);

@@ -1,4 +1,5 @@
 import http from "node:http";
+import { checkoutIncident } from "./checkout-incident.mjs";
 import { context, metrics, trace } from "@opentelemetry/api";
 import {
   logs,
@@ -31,7 +32,7 @@ const checkoutFailureCounter = unifiedTelemetryEnabled
   ? metrics
       .getMeter("otel-http-json-unified-demo", "1.0.0")
       .createCounter(unifiedMetricName, {
-        description: "Controlled checkout failures for Phase 7 verification",
+        description: checkoutIncident.metricDescription,
         unit: "{failure}",
       })
   : undefined;
@@ -65,7 +66,7 @@ const server = http.createServer((request, response) => {
         eventName: "phase7.demo.checkout.failure",
         severityNumber: SeverityNumber.ERROR,
         severityText: "ERROR",
-        body: "Phase 7 checkout inventory failure " + unifiedRunToken,
+        body: checkoutIncident.logMessage,
         attributes: {
           ...attributes,
           "exception.type": "InventoryUnavailableError",

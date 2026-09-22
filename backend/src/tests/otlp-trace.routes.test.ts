@@ -12,6 +12,11 @@ import {
 } from "../routes/otlp-trace.routes.js";
 
 import type { Span } from "../types/span.js";
+import { LOCAL_DEVELOPMENT_APPLICATION_ID } from "../types/application.js";
+
+const authenticator = {
+  authenticateAuthorizationHeader: async () => LOCAL_DEVELOPMENT_APPLICATION_ID,
+};
 
 class FakeSpanIngestionService
   implements OtlpSpanIngestionServiceLike
@@ -61,6 +66,7 @@ async function withTestApp(
 
   const routeOptions: OtlpTraceRouteOptions = {
     spanIngestionService,
+    authenticator,
   };
 
   if (options.bodyLimitBytes !== undefined) {
@@ -146,6 +152,7 @@ function parseCapturedLogs(chunks: string[]): Array<Record<string, unknown>> {
 
   assert.deepEqual(service.spans, [
     {
+      applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
       traceId: "5b8efff798038103d269b633813fc60c",
       spanId: "eee19b7ec3c1b174",
       service: "checkout-service",

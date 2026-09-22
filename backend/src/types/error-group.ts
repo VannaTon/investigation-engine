@@ -1,6 +1,7 @@
 export type ErrorGroupStatus = "open" | "acknowledged" | "resolved";
 
 export interface ErrorGroup {
+  application_id: string;
   fingerprint: string;
   sample_message: string;
   normalized_message: string;

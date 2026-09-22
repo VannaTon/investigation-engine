@@ -11,6 +11,12 @@ import {
   normalizeOtlpTraceRequest,
   OtlpTraceNormalizationError,
 } from "../telemetry/otlp/otlp-trace-normalizer.js";
+import {
+  ensureApplicationIdentityDecorator,
+  ingestionAuthenticationHook,
+  trustedApplicationId,
+  type IngestionAuthenticator,
+} from "./ingestion-auth.js";
 
 export const DEFAULT_OTLP_HTTP_BODY_LIMIT_BYTES = 64 * 1024 * 1024;
 
@@ -21,6 +27,7 @@ export type OtlpSpanIngestionServiceLike = Pick<
 
 export interface OtlpTraceRouteOptions {
   spanIngestionService: OtlpSpanIngestionServiceLike;
+  authenticator: IngestionAuthenticator;
   bodyLimitBytes?: number;
 }
 
@@ -65,6 +72,7 @@ export async function otlpTraceRoute(
   app: FastifyInstance,
   options: OtlpTraceRouteOptions,
 ): Promise<void> {
+  ensureApplicationIdentityDecorator(app);
   await app.register(compress, {
     globalCompression: false,
     globalDecompression: true,
@@ -107,8 +115,10 @@ export async function otlpTraceRoute(
     {
       bodyLimit:
         options.bodyLimitBytes ?? DEFAULT_OTLP_HTTP_BODY_LIMIT_BYTES,
+      onRequest: ingestionAuthenticationHook(options.authenticator),
     },
     async (request, reply) => {
+      const applicationId = trustedApplicationId(request);
       let normalization;
 
       try {
@@ -156,7 +166,10 @@ export async function otlpTraceRoute(
 
       try {
         for (const span of normalization.spans) {
-          await options.spanIngestionService.ingest(span);
+          await options.spanIngestionService.ingest({
+            ...span,
+            applicationId,
+          });
         }
       } catch (error) {
         request.log.error(

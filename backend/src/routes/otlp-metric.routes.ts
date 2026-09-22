@@ -17,20 +17,28 @@ import {
   OtlpMetricNormalizationError,
   type OtlpMetricNormalizationIssue,
 } from "../telemetry/otlp/otlp-metric-normalizer.js";
+import {
+  ensureApplicationIdentityDecorator,
+  ingestionAuthenticationHook,
+  trustedApplicationId,
+  type IngestionAuthenticator,
+} from "./ingestion-auth.js";
+import type { ApplicationTelemetry } from "../types/application.js";
 
 export const DEFAULT_OTLP_METRIC_HTTP_BODY_LIMIT_BYTES =
   64 * 1024 * 1024;
 
 export interface OtlpMetricIngestionServiceLike {
-  ingest(event: MetricEvent): Promise<unknown>;
+  ingest(event: ApplicationTelemetry<MetricEvent>): Promise<unknown>;
 }
 
 export interface OtlpHistogramMetricIngestionServiceLike {
-  ingest(event: HistogramMetricEvent): Promise<unknown>;
+  ingest(event: ApplicationTelemetry<HistogramMetricEvent>): Promise<unknown>;
 }
 
 export interface OtlpMetricRouteOptions {
   metricIngestionService: OtlpMetricIngestionServiceLike;
+  authenticator: IngestionAuthenticator;
   histogramMetricIngestionService?: OtlpHistogramMetricIngestionServiceLike;
   explicitHistogramsEnabled?: boolean;
   bodyLimitBytes?: number;
@@ -99,6 +107,7 @@ export async function otlpMetricRoute(
   app: FastifyInstance,
   options: OtlpMetricRouteOptions,
 ): Promise<void> {
+  ensureApplicationIdentityDecorator(app);
   if (
     options.explicitHistogramsEnabled === true &&
     options.histogramMetricIngestionService === undefined
@@ -151,8 +160,10 @@ export async function otlpMetricRoute(
       bodyLimit:
         options.bodyLimitBytes ??
         DEFAULT_OTLP_METRIC_HTTP_BODY_LIMIT_BYTES,
+      onRequest: ingestionAuthenticationHook(options.authenticator),
     },
     async (request, reply) => {
+      const applicationId = trustedApplicationId(request);
       let normalization: ReceiverNormalization;
 
       try {
@@ -255,11 +266,17 @@ export async function otlpMetricRoute(
       try {
         for (const dataPoint of normalization.events) {
           if (dataPoint.kind === "scalar") {
-            await options.metricIngestionService.ingest(dataPoint.event);
+            await options.metricIngestionService.ingest({
+              ...dataPoint.event,
+              applicationId,
+            });
             publishedScalarDataPoints++;
           } else {
             await options.histogramMetricIngestionService!.ingest(
-              dataPoint.event,
+              {
+                ...dataPoint.event,
+                applicationId,
+              },
             );
             publishedHistogramDataPoints++;
           }

@@ -1,6 +1,7 @@
 import fp from "fastify-plugin";
 import { clickhouse } from "../config/clickhouse.js";
 import { SchemaInitializer } from "../database/shema.js";
+import { initializeApplicationIdentityStorage } from "../database/application-identity-schema.js";
 
 export default fp(async () => {
   console.log("Connecting to ClickHouse...");
@@ -12,4 +13,5 @@ export default fp(async () => {
   const schema = new SchemaInitializer();
 
   await schema.initialize();
+  await initializeApplicationIdentityStorage();
 });

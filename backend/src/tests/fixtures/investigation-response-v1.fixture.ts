@@ -26,8 +26,10 @@ import type { TraceNode } from "../../types/trace-tree.js";
 
 const traceId = "trace-alert-001";
 
+const applicationId = "00000000-0000-4000-8000-000000000001";
 const alert: Alert = {
   id: "24afd0ec-1843-488c-9577-8b897eafd0c1",
+  applicationId,
   ruleId: "rule-auth-cpu",
   status: "firing",
   title: "High CPU on auth-service",
@@ -43,6 +45,7 @@ export const investigationResponseV1AlertId = alert.id;
 
 const rule: AlertRule = {
   id: "rule-auth-cpu",
+  applicationId,
   name: "Auth CPU threshold",
   type: "metric_threshold",
   enabled: true,
@@ -163,6 +166,7 @@ export function createAlertInvestigationServiceFixture(
     } as unknown as AlertRepository,
     {
       findForInvestigation: async (
+        _applicationId: string,
         service: string,
         from: string,
         to: string,
@@ -177,6 +181,7 @@ export function createAlertInvestigationServiceFixture(
     } as unknown as MetricRepository,
     {
       findRelevantForInvestigation: async (
+        _applicationId: string,
         alertService: string,
         incidentTraceIds: string[],
         from: string,
@@ -198,6 +203,7 @@ export function createAlertInvestigationServiceFixture(
     } as unknown as AlertInvestigationRepository,
     {
       findCandidateTraceIds: async (
+        _applicationId: string,
         _service: string,
         from: string,
         to: string,
@@ -207,6 +213,7 @@ export function createAlertInvestigationServiceFixture(
         return [traceId];
       },
       findForInvestigation: async (
+        _applicationId: string,
         _traceId: string,
         from: string,
         to: string,

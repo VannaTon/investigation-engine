@@ -13,6 +13,11 @@ import {
   type OtlpLogRouteOptions,
 } from "../routes/otlp-log.routes.js";
 import type { LogEvent } from "../types/log-event.js";
+import { LOCAL_DEVELOPMENT_APPLICATION_ID } from "../types/application.js";
+
+const authenticator = {
+  authenticateAuthorizationHeader: async () => LOCAL_DEVELOPMENT_APPLICATION_ID,
+};
 
 type RecordValue = Record<string, unknown>;
 const TRACE_ID = "5B8EFFF798038103D269B633813FC60C";
@@ -59,7 +64,7 @@ async function withTestApp(
             }),
           },
         });
-  const routeOptions: OtlpLogRouteOptions = { logIngestionService };
+  const routeOptions: OtlpLogRouteOptions = { logIngestionService, authenticator };
   if (options.bodyLimitBytes !== undefined) {
     routeOptions.bodyLimitBytes = options.bodyLimitBytes;
   }
@@ -140,6 +145,7 @@ test("publishes a valid OTLP log and returns an empty response", async () => {
   });
   assert.deepEqual(service.events, [
     {
+      applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
       timestamp: "1970-01-01T00:00:01.250Z",
       service: "checkout-service",
       level: "error",
@@ -529,8 +535,8 @@ test("returns generic 503 and logs the published prefix on failure", async () =>
 test("keeps the internal and OTLP log routes on distinct paths", async () => {
   const service = new FakeLogIngestionService();
   const app = Fastify({ logger: false });
-  await app.register(otlpLogRoute, { logIngestionService: service });
-  await app.register(logRoute);
+  await app.register(otlpLogRoute, { logIngestionService: service, authenticator });
+  await app.register(logRoute, { authenticator });
   try {
     await app.ready();
     assert.equal(

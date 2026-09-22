@@ -31,6 +31,14 @@ import {
   histogramMetricService,
 } from "./composition/histogram-metrics.js";
 import { histogramMetricRoute } from "./routes/histogram-metric.routes.js";
+import { metricDiscoveryRoutes } from "./routes/metric-discovery.routes.js";
+import { metricDiscoveryService } from "./composition/metric-discovery.js";
+import { applicationRoutes } from "./routes/application.routes.js";
+import {
+  applicationRepository,
+  applicationService,
+  ingestionAuthMode,
+} from "./composition/application.js";
 
 export async function buildApp() {
   const app = Fastify({
@@ -66,25 +74,46 @@ export async function buildApp() {
   await app.register(redisPlugin);
   await app.register(clickhousePlugin);
   await app.register(postgresPlugin);
+  await applicationRepository.assertStorageReady();
+  await app.register(applicationRoutes, {
+    applicationService,
+  });
+  if (ingestionAuthMode === "development") {
+    app.log.warn(
+      "Telemetry ingestion authentication is in explicit development mode",
+    );
+  }
   await app.register(statsRoute);
-  await app.register(spanRoute);
+  await app.register(spanRoute, {
+    authenticator: applicationService,
+  });
   await app.register(otlpTraceRoute, {
     spanIngestionService,
+    authenticator: applicationService,
   });
   await app.register(otlpMetricRoute, {
     metricIngestionService: otlpMetricIngestionService,
     histogramMetricIngestionService: histogramMetricService,
     explicitHistogramsEnabled: isOtlpExplicitHistogramsEnabled(),
+    authenticator: applicationService,
   });
   await app.register(otlpLogRoute, {
     logIngestionService,
+    authenticator: applicationService,
   });
   await app.register(incidentRoute);
   await app.register(healthRoute);
-  await app.register(logRoute);
+  await app.register(logRoute, {
+    authenticator: applicationService,
+  });
   await app.register(errorGroupRoute);
   await app.register(investigationRoute);
-  await app.register(metricRoute);
+  await app.register(metricRoute, {
+    authenticator: applicationService,
+  });
+  await app.register(metricDiscoveryRoutes, {
+    queryService: metricDiscoveryService,
+  });
   await app.register(histogramMetricRoute, {
     queryService: histogramMetricQueryService,
   });

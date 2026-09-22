@@ -8,13 +8,17 @@ import {
   StreamProcessingError,
   boundedErrorMessage,
 } from "../stream-processing.error.js";
+import type { ApplicationTelemetry } from "../../types/application.js";
 
 export function logInsertDeduplicationToken(messageId: string): string {
   return "logs:log-workers:" + messageId;
 }
 
-function identity(event: LogEvent): Record<string, string> {
+function identity(
+  event: ApplicationTelemetry<LogEvent>,
+): Record<string, string> {
   return {
+    applicationId: event.applicationId,
     service: event.service,
     level: event.level,
     ...(event.traceId === undefined ? {} : { traceId: event.traceId }),
@@ -25,7 +29,7 @@ export interface LogProcessorOptions {
   replayProtectionEnabled?: boolean;
 }
 
-export class LogProcessor implements Processor<LogEvent> {
+export class LogProcessor implements Processor<ApplicationTelemetry<LogEvent>> {
   constructor(
     private readonly repository: LogRepository,
     private readonly errorGroupRepository: ErrorGroupRepository,
@@ -33,7 +37,7 @@ export class LogProcessor implements Processor<LogEvent> {
   ) {}
 
   async process(
-    event: LogEvent,
+    event: ApplicationTelemetry<LogEvent>,
     context: StreamProcessingContext,
   ): Promise<void> {
     const startedAt = Date.now();

@@ -1,4 +1,5 @@
 export interface MetricQuery {
+  applicationId: string;
   service?: string;
   name?: string;
   from?: string;

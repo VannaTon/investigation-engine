@@ -8,9 +8,9 @@ export class IncidentQueryService {
     private readonly logQueryService: LogQueryService,
   ) {}
 
-  async find(traceId: string): Promise<Incident> {
-    const trace = await this.traceQueryService.find(traceId);
-    const logs = await this.logQueryService.find({ traceId });
+  async find(applicationId: string, traceId: string): Promise<Incident> {
+    const trace = await this.traceQueryService.find(applicationId, traceId);
+    const logs = await this.logQueryService.find({ applicationId, traceId });
 
     return {
       trace,

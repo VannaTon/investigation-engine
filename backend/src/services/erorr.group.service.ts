@@ -2,11 +2,11 @@ import { ErrorGroupRepository } from "../repository/error-group.repository.js";
 export class ErrorGroupQueryService {
   constructor(private readonly repository: ErrorGroupRepository) {}
 
-  async findAll() {
-    return this.repository.findAll();
+  async findAll(applicationId: string) {
+    return this.repository.findAll(applicationId);
   }
 
-  async find(fingerprint: string) {
-    return this.repository.findByFingerprint(fingerprint);
+  async find(applicationId: string, fingerprint: string) {
+    return this.repository.findByFingerprint(applicationId, fingerprint);
   }
 }

@@ -1,4 +1,5 @@
 export interface HistogramMetricQuery {
+  applicationId: string;
   service?: string;
   name?: string;
   from?: string;

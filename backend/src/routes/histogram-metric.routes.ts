@@ -21,7 +21,9 @@ export async function histogramMetricRoute(
         querystring: {
           type: "object",
           additionalProperties: false,
+          required: ["applicationId"],
           properties: {
+            applicationId: { type: "string", minLength: 1 },
             service: { type: "string", minLength: 1 },
             name: { type: "string", minLength: 1 },
             from: { type: "string", minLength: 1 },

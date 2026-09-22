@@ -213,4 +213,27 @@ assert.deepEqual(authFacts.correlationTypes, ["same_span", "same_trace"]);
 
 assert.equal(authFacts.supportDiversity, 3);
 
+// More records of existing types do not add support types or change other facts.
+const repeatedSignal: InvestigationSignal = {
+  ...signals[0]!,
+  id: "signal:trace-chain:repeat",
+};
+const factsWithRepeatedTypes = service.createFacts(
+  candidates.map((candidate) => ({
+    ...candidate,
+    signalIds: [...candidate.signalIds, repeatedSignal.id],
+  })),
+  findings,
+  [
+    ...correlations,
+    ...correlations.map((correlation) => ({
+      ...correlation,
+      id: `${correlation.id}:repeat`,
+    })),
+  ],
+  [...signals, repeatedSignal],
+  traces,
+);
+assert.deepEqual(factsWithRepeatedTypes, facts);
+
 console.log("Investigation cause candidate facts tests passed.");

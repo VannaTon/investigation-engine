@@ -23,6 +23,9 @@ create spans or propagate trace headers manually. OpenTelemetry is loaded with
 the official zero-code registration module before either application starts.
 Because the applications use ECMAScript modules, the verifier also loads
 the official OpenTelemetry instrumentation hook required to patch ESM imports.
+It uses Node's supported `--import` entry point and `node:module.register()`
+to register `@opentelemetry/instrumentation/hook.mjs`; it does not use the
+deprecated `--experimental-loader` flag.
 
 ## Prerequisites
 
@@ -81,11 +84,6 @@ OTEL_NODE_ENABLED_INSTRUMENTATIONS=http
 Using the signal-specific traces endpoint means /v1/traces is not appended
 automatically. The protocol is deliberately set to http/json because the
 platform receiver currently implements OTLP/HTTP JSON-only compatibility.
-
-Node 22 currently prints an ExperimentalWarning for OpenTelemetry's ESM
-instrumentation loader hook. This is expected: OpenTelemetry requires the hook
-to patch ESM imports, and the underlying Node loader mechanism is still marked
-experimental.
 
 A successful verification ends with a JSON record whose event is
 otel_http_json_demo_verified and includes both trace IDs, their persisted span
@@ -222,11 +220,87 @@ The `:preserve` command leaves the generated alert and its telemetry available
 for the frontend at the printed port-5173 URL. Use `npm run verify:unified` for
 a run that deletes its alert rule after verification.
 
+## Secure application onboarding verification
+
+Start the complete local stack in required-authentication mode from the backend
+directory:
+
+~~~
+INGESTION_AUTH_MODE=required npm run dev:stack
+~~~
+
+Then run this command from the demo directory:
+
+~~~
+npm run verify:onboarding:secure
+~~~
+
+This wrapper owns the disposable application and key lifecycle. It verifies:
+
+- missing keys are rejected for traces, metrics, and logs;
+- an unknown well-formed key is rejected;
+- application creation returns a one-time key while later listings expose only
+  safe metadata and its prefix, never the key or its hash;
+- valid trace, metric, and log OTLP/HTTP `http/json` requests are accepted;
+- a forged application identity in a trace body cannot override the
+  key-derived application identity;
+- the real three-signal demo stores every signal, alert, and investigation
+  under that same application and cannot be queried through the local
+  development application;
+- the generated investigation is preserved while its alert rule is disabled;
+- a disabled application rejects its otherwise valid key with HTTP 403; and
+- after re-enabling the application, revoking the key makes it return HTTP 401.
+
+The final JSON record prints the disposable application ID/name, key ID and
+prefix, alert/rule IDs, and a frontend URL. It never prints the raw key. The
+application finishes disabled, the key finishes revoked, and the preserved rule
+finishes disabled. If verification fails after creation, cleanup still attempts
+those safe final states and emits a structured cleanup error if any step fails.
+
+The runner configures signal-specific exporter credentials and bounded
+OpenTelemetry deadlines itself. It also limits metric exports to one controlled
+30-second interval so a slow development machine does not create an unnecessary
+queue backlog. The full key is removed from the unified verifier's inherited
+environment before it launches the demo applications, and forwarded child output
+is defensively redacted.
+
+Advanced direct use of `verify:unified` against required mode is possible with
+`DEMO_APPLICATION_ID` and `DEMO_INGESTION_KEY`, but the secure onboarding
+wrapper is preferred because it creates, tests, revokes, and disables its own
+resources.
+
+The live secure runner is intentionally not part of GitHub Actions. It requires
+the API, Redis, ClickHouse, and all telemetry workers, and it writes disposable
+local state. The demo's source-level regression tests remain available through
+`npm test`.
+
+## Incident names and local copy tests
+
+New unified demo runs use the incident title **Checkout failures detected** and
+the application log message **Checkout failed because inventory is unavailable.**
+The measured signal remains a raw cumulative monotonic counter with unit
+`{failure}` and an unchanged `>= 1` threshold; neither the title nor the UI
+should present it as a percentage or failure rate.
+
+The raw metric selector remains unique per run (`checkout_failures_<run-token>`).
+The exact `demo.run_token`, environment, event name, trace IDs, and span IDs
+remain in telemetry metadata and verification checks. The log body no longer
+contains the run token, so repeated examples of the same failure can share an
+error fingerprint; the verifier still identifies its exact log by trace/span
+and checks the matching run-token metadata. Historical logs are not rewritten.
+
+Run `npm test` in this example directory for the incident-copy, threshold,
+run-isolation, and producer/verifier wiring regression checks. These tests do
+not publish telemetry or replace `verify:unified` end-to-end verification.
+Changing the generator does not rename existing preserved investigations.
+
 ## Scope
 
-This demo does not add or test OTLP protobuf compatibility, authentication,
-or Histogram aggregation/alerts. The standalone Phase 6C log verifier does
-not test trace-to-log correlation; the Phase 7 unified verifier does. Metrics
+This demo does not implement authentication; the secure onboarding wrapper
+tests the platform's existing required-mode authentication and trusted
+application scoping. It does not add or test OTLP protobuf compatibility or
+Histogram aggregation/alerts. The standalone Phase 6C log verifier does not
+test trace-to-log correlation; the Phase 7 unified verifier does. Metrics
 compatibility covers Gauge, cumulative monotonic Sum, and explicit Histogram.
 Log compatibility covers string-body INFO and ERROR records, resource and
 log attributes, instrumentation scope, stack trace mapping, error grouping,

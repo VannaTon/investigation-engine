@@ -11,6 +11,11 @@ import {
 } from "../routes/otlp-metric.routes.js";
 import type { HistogramMetricEvent } from "../types/histogram-metric-event.js";
 import type { MetricEvent } from "../types/metric-event.js";
+import { LOCAL_DEVELOPMENT_APPLICATION_ID } from "../types/application.js";
+
+const authenticator = {
+  authenticateAuthorizationHeader: async () => LOCAL_DEVELOPMENT_APPLICATION_ID,
+};
 
 function gauge(): Record<string, unknown> {
   return {
@@ -143,6 +148,7 @@ async function withEnabledApp(
 
   await app.register(otlpMetricRoute, {
     metricIngestionService: scalarService,
+    authenticator,
     histogramMetricIngestionService: histogramService,
     explicitHistogramsEnabled: true,
   });
@@ -179,6 +185,7 @@ test("enabled receiver publishes mixed scalar and histogram points in input orde
     assert.equal(harness.scalarEvents.length, 2);
     assert.deepEqual(harness.histogramEvents, [
       {
+        applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
         timestamp: "1970-01-01T00:00:01.250Z",
         service: "checkout-service",
         name: "demo.duration",
@@ -307,6 +314,7 @@ test("enabling histograms without a histogram ingestion service fails app startu
 
   app.register(otlpMetricRoute, {
     metricIngestionService: scalarService,
+    authenticator,
     explicitHistogramsEnabled: true,
   });
 

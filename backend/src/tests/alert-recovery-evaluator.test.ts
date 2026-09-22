@@ -18,6 +18,7 @@ import type {
 } from "../types/alert.js";
 import type { MetricEvent } from "../types/metric-event.js";
 
+const applicationId = "00000000-0000-4000-8000-000000000001";
 const alertId = "24afd0ec-1843-488c-9577-8b897eafd0c1";
 const ruleId = "rule-auth-cpu";
 const resolvedAt = "2026-08-15T06:20:00.000Z";
@@ -37,6 +38,7 @@ const ruleConfig: MetricThresholdRuleConfig = {
 
 const rule: AlertRule = {
   id: ruleId,
+  applicationId,
   name: "Auth CPU threshold",
   type: "metric_threshold",
   enabled: true,
@@ -95,6 +97,7 @@ function createHarness(options?: {
 }): Harness {
   let alert: Alert = {
     id: alertId,
+    applicationId,
     ruleId,
     status: "firing",
     title: "High CPU on auth-service",
@@ -261,7 +264,7 @@ function createHarness(options?: {
   const stableInvestigation = { ...harness.getInvestigation() };
 
   await harness.evaluator.evaluateAlert(
-    { id: alertId, ruleId },
+    { id: alertId, ruleId, applicationId },
     ruleConfig,
     evaluationNow,
   );

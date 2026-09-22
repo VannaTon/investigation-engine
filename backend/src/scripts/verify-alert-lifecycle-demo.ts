@@ -28,7 +28,7 @@ async function check(id: string) {
     acknowledgedAt: alert.acknowledgedAt ?? null, resolvedAt: alert.resolvedAt ?? null,
     persisted: owned.rows[0], window: investigation.window,
     candidateCount: investigation.causeCandidates.length,
-    detailUrl: "http://localhost:5173/investigations/" + id + "?source=live&q=Phase+10C&status=firing",
+    detailUrl: "http://localhost:5173/investigations/" + id + "?source=live",
   }));
 }
 
@@ -53,7 +53,7 @@ try {
       );
       await client.query(
         "INSERT INTO alerts (id,rule_id,status,title,message,service,started_at) VALUES ($1,$2,'firing',$3,$4,$5,CURRENT_TIMESTAMP)",
-        [id, ruleId, marker + " (disposable)", "Disposable alert for acknowledge, cancel, resolve, and workspace acceptance checks. No telemetry was generated.", "phase10c-demo"],
+        [id, ruleId, "Checkout alert workflow example", "Synthetic alert for trying acknowledgement and resolution. No telemetry was generated.", "phase10c-demo"],
       );
       await client.query(
         "INSERT INTO alert_investigations (alert_id,default_window_from) VALUES ($1,CURRENT_TIMESTAMP - interval '15 minutes')", [id],

@@ -2,14 +2,46 @@ import type { FastifyInstance } from "fastify";
 import type { LogEvent } from "../types/log-event.js";
 import type { LogQuery } from "../types/log.query.js";
 import { logIngestionService, logQueryService } from "../composition/log.js";
+import {
+  ensureApplicationIdentityDecorator,
+  ingestionAuthenticationHook,
+  trustedApplicationId,
+  type IngestionAuthenticator,
+} from "./ingestion-auth.js";
 
-export async function logRoute(app: FastifyInstance) {
-  app.post<{ Body: LogEvent }>("/v1/logs", async (request) => {
-    return logIngestionService.ingest(request.body);
-  });
+export async function logRoute(
+  app: FastifyInstance,
+  options: { authenticator: IngestionAuthenticator },
+) {
+  ensureApplicationIdentityDecorator(app);
+  app.post<{ Body: LogEvent }>(
+    "/v1/logs",
+    {
+      onRequest: ingestionAuthenticationHook(options.authenticator),
+    },
+    async (request) => {
+      return logIngestionService.ingest({
+        ...request.body,
+        applicationId: trustedApplicationId(request),
+      });
+    },
+  );
 
-  app.get<{ Querystring: LogQuery }>("/v1/logs", async (request) => {
-    const query: LogQuery = {};
+  app.get<{ Querystring: LogQuery }>(
+    "/v1/logs",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          required: ["applicationId"],
+          properties: { applicationId: { type: "string", minLength: 1 } },
+        },
+      },
+    },
+    async (request) => {
+    const query: LogQuery = {
+      applicationId: request.query.applicationId,
+    };
 
     if (request.query.service) {
       query.service = request.query.service;
@@ -36,5 +68,6 @@ export async function logRoute(app: FastifyInstance) {
       query.traceId = request.query.traceId;
     }
     return logQueryService.find(query);
-  });
+    },
+  );
 }

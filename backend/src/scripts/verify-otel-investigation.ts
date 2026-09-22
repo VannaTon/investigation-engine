@@ -457,7 +457,7 @@ async function verify(): Promise<VerificationIdentifiers> {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        name: "OTLP demo investigation " + runId,
+        name: "Gateway request failure detected",
         type: "metric_threshold",
         enabled: true,
         config: {

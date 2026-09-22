@@ -4,6 +4,7 @@ import type { AlertRule } from "../types/alert.js";
 import { MetricRepository } from "../repository/metric.repository.js";
 import { AlertService } from "./alert.service.js";
 import { AlertRuleRepository } from "../repository/alert-rule.repository.js";
+import type { ApplicationTelemetry } from "../types/application.js";
 
 export class MetricAlertEvaluator {
   constructor(
@@ -38,6 +39,7 @@ export class MetricAlertEvaluator {
     const from = new Date(now.getTime() - config.windowMinutes * 60 * 1000);
 
     const metrics = await this.metricRepository.findForAlertEvaluation(
+      rule.applicationId,
       config.metricName,
       config.service,
       from.toISOString(),
@@ -60,14 +62,15 @@ export class MetricAlertEvaluator {
 
     await this.alertService.create({
       ruleId: rule.id,
+      applicationId: rule.applicationId,
       title: rule.name,
       message: `${config.metricName} exceeded threshold ${config.threshold}`,
       service: config.service,
       startedAt: now.toISOString(),
     });
   }
-  async evaluate(metric: MetricEvent, now: Date = new Date()): Promise<void> {
-    const rules = await this.alertRuleRepository.findEnabled();
+  async evaluate(metric: ApplicationTelemetry<MetricEvent>, now: Date = new Date()): Promise<void> {
+    const rules = await this.alertRuleRepository.findEnabled(metric.applicationId);
 
     const metricRules = rules.filter(
       (rule) => rule.type === "metric_threshold",

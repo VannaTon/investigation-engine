@@ -6,6 +6,7 @@ import { buildNarrativeContext } from "../services/investigation-narrative-conte
 import { hashInvestigationNarrativeContext } from "../services/investigation-narrative-context-hash.service.js";
 import type { InvestigationResponseV1 } from "../types/investigation-response.js";
 import type { MetricEvent } from "../types/metric-event.js";
+import { LOCAL_DEVELOPMENT_APPLICATION_ID } from "../types/application.js";
 import {
   createAlertInvestigationServiceFixture,
   type InvestigationFixtureQueryLog,
@@ -40,6 +41,7 @@ try {
   const repository = new MetricRepository();
 
   await repository.findForInvestigation(
+    LOCAL_DEVELOPMENT_APPLICATION_ID,
     "auth-service",
     "2026-08-15T05:50:00.000Z",
     "2026-08-15T06:30:00.000Z",
@@ -49,10 +51,12 @@ try {
 
   const normalizedSql = captured.query.replace(/\s+/g, " ");
 
-  assert.match(normalizedSql, /WHERE service = \{service:String\}/);
+  assert.match(normalizedSql, /application_id = \{applicationId:UUID\}/);
+  assert.match(normalizedSql, /AND service = \{service:String\}/);
   assert.deepEqual(captured.query_params, {
     service: "auth-service",
     from: "2026-08-15T05:50:00.000Z",
+    applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
     to: "2026-08-15T06:30:00.000Z",
   });
 } finally {

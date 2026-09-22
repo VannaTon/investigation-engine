@@ -6,27 +6,31 @@ import {
   StreamProcessingError,
   boundedErrorMessage,
 } from "../stream-processing.error.js";
+import type { ApplicationTelemetry } from "../../types/application.js";
 
 export function metricInsertDeduplicationToken(messageId: string): string {
   return "metrics:metric_workers:" + messageId;
 }
 
-function identity(event: MetricEvent): Record<string, string> {
+function identity(
+  event: ApplicationTelemetry<MetricEvent>,
+): Record<string, string> {
   return {
+    applicationId: event.applicationId,
     service: event.service,
     name: event.name,
     type: event.type,
   };
 }
 
-export class MetricProcessor implements Processor<MetricEvent> {
+export class MetricProcessor implements Processor<ApplicationTelemetry<MetricEvent>> {
   constructor(
     private readonly repository: MetricRepository,
     private readonly metricAlertEvaluator: MetricAlertEvaluator,
   ) {}
 
   async process(
-    event: MetricEvent,
+    event: ApplicationTelemetry<MetricEvent>,
     context: StreamProcessingContext,
   ): Promise<void> {
     const startedAt = Date.now();

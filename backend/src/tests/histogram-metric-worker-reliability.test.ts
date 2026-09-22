@@ -28,12 +28,17 @@ import {
   HistogramMetricRecoveryService,
 } from "../worker/recovery/histogram-metric-recovery.service.js";
 import { StreamProcessingError } from "../worker/stream-processing.error.js";
+import {
+  LOCAL_DEVELOPMENT_APPLICATION_ID,
+  type ApplicationTelemetry,
+} from "../types/application.js";
 
 const MESSAGE_ID = "1788685323456-0";
 const CONSUMER = "metric_histogram_workers-test";
 const UINT64_MAX = "18446744073709551615";
 
-const event: HistogramMetricEvent = {
+const event: ApplicationTelemetry<HistogramMetricEvent> = {
+  applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
   timestamp: "2026-09-06T01:02:03.456Z",
   service: "checkout-service",
   name: "http.server.duration",
@@ -139,6 +144,7 @@ test("repository preserves exact UInt64 strings and the stable insertion token",
     table: "metric_histograms",
     values: [
       {
+        application_id: event.applicationId,
         timestamp: event.timestamp,
         service: event.service,
         name: event.name,
@@ -179,6 +185,7 @@ test("raw histogram query keeps UInt64 values as strings and uses a composite cu
               temporality: event.temporality,
               count: UINT64_MAX,
               sum: 42,
+              application_id: LOCAL_DEVELOPMENT_APPLICATION_ID,
               min: 1,
               max: 10,
               bucket_counts: [UINT64_MAX],
@@ -210,6 +217,7 @@ test("raw histogram query keeps UInt64 values as strings and uses a composite cu
 
   const result = await repository.find({
     service: event.service,
+    applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID,
     name: event.name,
     limit: 1,
   });
@@ -239,7 +247,7 @@ test("raw histogram query keeps UInt64 values as strings and uses a composite cu
   );
 
   await assert.rejects(
-    repository.find({ cursor: "not-a-valid-cursor" }),
+    repository.find({ applicationId: LOCAL_DEVELOPMENT_APPLICATION_ID, cursor: "not-a-valid-cursor" }),
     /Histogram metric cursor is invalid/,
   );
 });

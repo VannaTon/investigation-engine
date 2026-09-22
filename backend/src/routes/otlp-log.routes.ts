@@ -12,16 +12,24 @@ import {
   type OtlpLogNormalizationIssue,
 } from "../telemetry/otlp/otlp-log-normalizer.js";
 import type { LogEvent } from "../types/log-event.js";
+import {
+  ensureApplicationIdentityDecorator,
+  ingestionAuthenticationHook,
+  trustedApplicationId,
+  type IngestionAuthenticator,
+} from "./ingestion-auth.js";
+import type { ApplicationTelemetry } from "../types/application.js";
 
 export const DEFAULT_OTLP_LOG_HTTP_BODY_LIMIT_BYTES =
   64 * 1024 * 1024;
 
 export interface OtlpLogIngestionServiceLike {
-  ingest(event: LogEvent): Promise<unknown>;
+  ingest(event: ApplicationTelemetry<LogEvent>): Promise<unknown>;
 }
 
 export interface OtlpLogRouteOptions {
   logIngestionService: OtlpLogIngestionServiceLike;
+  authenticator: IngestionAuthenticator;
   bodyLimitBytes?: number;
 }
 
@@ -87,6 +95,7 @@ export async function otlpLogRoute(
   app: FastifyInstance,
   options: OtlpLogRouteOptions,
 ): Promise<void> {
+  ensureApplicationIdentityDecorator(app);
   await app.register(compress, {
     globalCompression: false,
     globalDecompression: true,
@@ -130,8 +139,10 @@ export async function otlpLogRoute(
       bodyLimit:
         options.bodyLimitBytes ??
         DEFAULT_OTLP_LOG_HTTP_BODY_LIMIT_BYTES,
+      onRequest: ingestionAuthenticationHook(options.authenticator),
     },
     async (request, reply) => {
+      const applicationId = trustedApplicationId(request);
       let normalization;
 
       try {
@@ -207,7 +218,10 @@ export async function otlpLogRoute(
 
       try {
         for (const event of normalization.events) {
-          await options.logIngestionService.ingest(event);
+          await options.logIngestionService.ingest({
+            ...event,
+            applicationId,
+          });
           publishedLogRecords++;
         }
       } catch (error) {

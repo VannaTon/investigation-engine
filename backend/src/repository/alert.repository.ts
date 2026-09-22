@@ -4,6 +4,7 @@ import type { Alert, AlertStatus } from "../types/alert.js";
 
 type AlertRow = {
   id: string;
+  application_id: string;
   rule_id: string;
   status: AlertStatus;
   title: string;
@@ -22,6 +23,7 @@ export class AlertRepository {
   private mapToAlert(row: AlertRow): Alert {
     const alert: Alert = {
       id: row.id,
+      applicationId: row.application_id,
       ruleId: row.rule_id,
       status: row.status,
       title: row.title,
@@ -56,6 +58,7 @@ export class AlertRepository {
 
   async create(input: {
     ruleId: string;
+    applicationId: string;
     title: string;
     message: string;
     fingerprint?: string;
@@ -66,6 +69,7 @@ export class AlertRepository {
     const result = await postgres.query<AlertRow>(
       `
       INSERT INTO alerts (
+        application_id,
         rule_id,
         status,
         title,
@@ -77,16 +81,18 @@ export class AlertRepository {
       )
       VALUES (
         $1,
-        'firing',
         $2,
+        'firing',
         $3,
         $4,
         $5,
         $6,
-        $7
+        $7,
+        $8
       )
       RETURNING
         id,
+        application_id,
         rule_id,
         status,
         title,
@@ -101,6 +107,7 @@ export class AlertRepository {
         updated_at;
       `,
       [
+        input.applicationId,
         input.ruleId,
         input.title,
         input.message,
@@ -125,6 +132,7 @@ export class AlertRepository {
       `
       SELECT
         id,
+        application_id,
         rule_id,
         status,
         title,
@@ -150,6 +158,7 @@ export class AlertRepository {
       `
       SELECT
         id,
+        application_id,
         rule_id,
         status,
         title,
@@ -191,6 +200,7 @@ export class AlertRepository {
         WHERE id = $1 AND status IN ('firing', 'acknowledged')
         RETURNING
           id,
+          application_id,
           rule_id,
           status,
           title,
@@ -225,6 +235,7 @@ export class AlertRepository {
         WHERE id = $1 AND status IN ('firing', 'acknowledged', 'resolved')
         RETURNING
           id,
+          application_id,
           rule_id,
           status,
           title,
@@ -250,6 +261,7 @@ export class AlertRepository {
         WHERE id = $1 AND status = 'firing' AND $2 = 'firing'
         RETURNING
           id,
+          application_id,
           rule_id,
           status,
           title,
@@ -281,6 +293,7 @@ export class AlertRepository {
       `
     SELECT
       id,
+      application_id,
       rule_id,
       status,
       title,
@@ -316,6 +329,7 @@ export class AlertRepository {
       `
     SELECT
       id,
+      application_id,
       rule_id,
       status,
       title,

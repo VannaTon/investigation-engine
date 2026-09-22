@@ -112,12 +112,17 @@ export function buildLocalProcessSpecs(
 ): LocalProcessSpec[] {
   const frontendDirectory = resolve(backendDirectory, "../frontend");
   const tsxExecutable = resolve(backendDirectory, "node_modules/.bin/tsx");
+  const localEnvironment = {
+    ...baseEnvironment,
+    INGESTION_AUTH_MODE:
+      baseEnvironment.INGESTION_AUTH_MODE ?? "development",
+  };
   const viteExecutable = resolve(
     frontendDirectory,
     "node_modules/vite/bin/vite.js",
   );
   const workerEnvironment = {
-    ...baseEnvironment,
+    ...localEnvironment,
     [WORKER_INSTANCE_ID_ENV]: LOCAL_WORKER_INSTANCE_ID,
   };
   const consumerName = (group: string): string =>
@@ -129,7 +134,7 @@ export function buildLocalProcessSpecs(
       command: tsxExecutable,
       args: ["watch", "src/server.ts"],
       cwd: backendDirectory,
-      environment: { ...baseEnvironment },
+      environment: localEnvironment,
     },
     {
       name: "log-worker",
@@ -196,7 +201,7 @@ export function buildLocalProcessSpecs(
       ],
       cwd: frontendDirectory,
       environment: {
-        ...baseEnvironment,
+        ...localEnvironment,
         VITE_DATA_SOURCE: "http",
         VITE_API_BASE_URL: "http://localhost:3000",
       },
@@ -758,6 +763,19 @@ export async function runLocalDevStack(): Promise<void> {
     await Promise.all([assertPortAvailable(3000), assertPortAvailable(5173)]);
     await ensureInfrastructure();
     await waitForInfrastructureReadiness();
+
+    await runCommand(
+      "postgres-migrations",
+      "npm",
+      ["run", "migrate:up"],
+      defaultBackendDirectory,
+    );
+    await runCommand(
+      "application-identity-storage",
+      "npm",
+      ["run", "configure:application-identity-storage"],
+      defaultBackendDirectory,
+    );
 
     const specs = buildLocalProcessSpecs();
     for (const spec of specs) {

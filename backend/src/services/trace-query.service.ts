@@ -7,15 +7,24 @@ export class TraceQueryService {
     private readonly repository: SpanRepository,
     private readonly traceTreeService: TraceTreeService,
   ) {}
-  async find(traceId: string) {
-    const spans = await this.repository.findByTraceId(traceId);
+  async find(applicationId: string, traceId: string) {
+    const spans = await this.repository.findByTraceId(
+      applicationId,
+      traceId,
+    );
     console.log("spans", spans);
 
     return this.traceTreeService.build(spans);
   }
 
-  async findForInvestigation(traceId: string, from: string, to: string) {
+  async findForInvestigation(
+    applicationId: string,
+    traceId: string,
+    from: string,
+    to: string,
+  ) {
     const spans = await this.repository.findByTraceIdForInvestigation(
+      applicationId,
       traceId,
       from,
       to,
@@ -23,31 +32,43 @@ export class TraceQueryService {
 
     return this.traceTreeService.build(spans);
   }
-  async save(span: Span) {
+  async save(span: Span & { applicationId: string }) {
     this.repository.save(span);
   }
 
-  async findMany(traceIds: string[]) {
+  async findMany(applicationId: string, traceIds: string[]) {
     const traces = await Promise.all(
-      traceIds.map((traceId) => this.find(traceId)),
+      traceIds.map((traceId) => this.find(applicationId, traceId)),
     );
 
     return traces.flat();
   }
 
   async findTraceIdsForInvestigation(
+    applicationId: string,
     service: string,
     from: string,
     to: string,
   ): Promise<string[]> {
-    return this.repository.findTraceIdsForInvestigation(service, from, to);
+    return this.repository.findTraceIdsForInvestigation(
+      applicationId,
+      service,
+      from,
+      to,
+    );
   }
 
   async findCandidateTraceIds(
+    applicationId: string,
     service: string,
     from: string,
     to: string,
   ): Promise<string[]> {
-    return this.repository.findCandidateTraceIds(service, from, to);
+    return this.repository.findCandidateTraceIds(
+      applicationId,
+      service,
+      from,
+      to,
+    );
   }
 }

@@ -5,11 +5,13 @@
   "type": "module",
   "description": "Real Node.js auto-instrumentation compatibility demo for the observability platform OTLP/HTTP JSON receiver.",
   "scripts": {
+    "test": "node --test tests/checkout-incident.test.mjs",
     "verify": "node scripts/verify-e2e.mjs",
     "verify:metrics": "node scripts/verify-metrics-e2e.mjs",
     "verify:logs": "node scripts/verify-logs-e2e.mjs",
     "verify:unified": "node ../../node_modules/tsx/dist/cli.mjs scripts/verify-unified-investigation-e2e.mjs",
-    "verify:unified:preserve": "node ../../node_modules/tsx/dist/cli.mjs scripts/verify-unified-investigation-e2e.mjs --preserve"
+    "verify:unified:preserve": "node ../../node_modules/tsx/dist/cli.mjs scripts/verify-unified-investigation-e2e.mjs --preserve",
+    "verify:onboarding:secure": "node scripts/verify-application-onboarding-e2e.mjs"
   },
   "engines": {
     "node": ">=20"

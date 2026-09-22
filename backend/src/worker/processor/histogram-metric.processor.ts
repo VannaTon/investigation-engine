@@ -5,6 +5,7 @@ import {
   boundedErrorMessage,
 } from "../stream-processing.error.js";
 import type { Processor, StreamProcessingContext } from "./processor.js";
+import type { ApplicationTelemetry } from "../../types/application.js";
 
 export function histogramMetricInsertDeduplicationToken(
   messageId: string,
@@ -13,9 +14,10 @@ export function histogramMetricInsertDeduplicationToken(
 }
 
 function identity(
-  event: HistogramMetricEvent,
+  event: ApplicationTelemetry<HistogramMetricEvent>,
 ): Record<string, string> {
   return {
+    applicationId: event.applicationId,
     service: event.service,
     name: event.name,
     type: event.type,
@@ -24,12 +26,12 @@ function identity(
 }
 
 export class HistogramMetricProcessor
-  implements Processor<HistogramMetricEvent>
+  implements Processor<ApplicationTelemetry<HistogramMetricEvent>>
 {
   constructor(private readonly repository: HistogramMetricRepository) {}
 
   async process(
-    event: HistogramMetricEvent,
+    event: ApplicationTelemetry<HistogramMetricEvent>,
     context: StreamProcessingContext,
   ): Promise<void> {
     const startedAt = Date.now();
