@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Database, Gauge, ScrollText } from "lucide-react";
 import { InvestigationDetailSection } from "./InvestigationDetailSection";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import { formatMetric, formatTime, parseTimestamp } from "../lib/formatters";
 import { logDomId } from "../lib/investigationTargets";
 import { hashTargetId } from "../lib/investigationReviewLocation";
@@ -33,7 +34,7 @@ function Metadata({ metadata }: { metadata?: Record<string, unknown> }) {
       {entries.map(([key, value]) => (
         <span
           key={key}
-          className="max-w-full break-words rounded bg-canvas px-1.5 py-0.5 font-mono text-[0.65rem] text-slate [overflow-wrap:anywhere]"
+          className="max-w-full break-words rounded bg-canvas px-1.5 py-0.5 font-mono text-xs text-slate [overflow-wrap:anywhere]"
         >
           {key}={String(value)}
         </span>
@@ -58,7 +59,7 @@ function EvidenceHeader({
   return (
     <div className="flex items-end justify-between gap-4 border-b border-steel px-5 py-4">
       <div>
-        <p className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-slate">
+        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-slate">
           <Icon className="h-3.5 w-3.5" aria-hidden="true" />
           {eyebrow}
         </p>
@@ -117,12 +118,12 @@ export function Evidence({
     <InvestigationDetailSection
       id="telemetry"
       eyebrow="Supporting observations"
-      title="Telemetry"
+      title="Metrics and logs"
       description={`${metrics.length} ${metrics.length === 1 ? "metric" : "metrics"} · ${logs.length} ${logs.length === 1 ? "log" : "logs"}.`}
       count={metrics.length + logs.length}
       Icon={Database}
-      actionLabel="View all telemetry"
-      drawerDescription="Complete metric readings and log records captured in the investigation window."
+      actionLabel="View metrics and logs"
+      drawerDescription="All metric readings and logs recorded during the investigation window."
       grouped={grouped}
       open={detailsOpen}
       onOpenChange={onDetailsOpenChange}
@@ -131,7 +132,7 @@ export function Evidence({
           <p className="flex min-w-0 items-center gap-2 text-xs">
             <span className="shrink-0 font-bold uppercase tracking-[0.08em] text-incident">Latest error</span>
             <span className="truncate font-semibold text-ink">{latestErrorLog.message}</span>
-            <span className="shrink-0 font-mono text-[0.65rem] text-slate">{latestErrorLog.service}</span>
+            <span className="shrink-0 font-mono text-xs text-slate">{latestErrorLog.service}</span>
           </p>
         ) : undefined
       }
@@ -139,15 +140,20 @@ export function Evidence({
       <div className="space-y-4 p-4 sm:p-5">
         {focusedExactSpan && (
           <div className="rounded-lg border border-ink bg-canvas px-4 py-3" role="status">
-            <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">
-              Exact span selection
+            <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate">
+              Selected request step
             </p>
             <p className="mt-1 text-sm font-extrabold text-ink">
-              {focusedLogCount} {focusedLogCount === 1 ? "log matches" : "logs match"} the selected trace and span.
+              {focusedLogCount} {focusedLogCount === 1 ? "log matches" : "logs match"} the selected request path and step.
             </p>
-            <p className="mt-1 break-all font-mono text-[0.65rem] leading-5 text-slate">
-              trace {focusedExactSpan.traceId} · span {focusedExactSpan.spanId}
-            </p>
+            <ExactIdentifiers
+              className="mt-2"
+              summary="Trace and span IDs"
+              identifiers={[
+                { label: "Trace ID", value: focusedExactSpan.traceId },
+                { label: "Span ID", value: focusedExactSpan.spanId },
+              ]}
+            />
           </div>
         )}
 
@@ -155,7 +161,7 @@ export function Evidence({
           <EvidenceHeader
             id="metrics-heading"
             icon={Gauge}
-            eyebrow="Supporting telemetry"
+            eyebrow="Recorded evidence"
             title="Metrics"
             count={metrics.length}
           />
@@ -176,7 +182,7 @@ export function Evidence({
                       {formatMetric(metric.value, metric.unit)}
                     </p>
                   </div>
-                  <time dateTime={metric.timestamp} className="mt-2 block font-mono text-[0.68rem] tabular-nums text-slate">
+                  <time dateTime={metric.timestamp} className="mt-2 block font-mono text-xs tabular-nums text-slate">
                     {formatTime(metric.timestamp)}
                   </time>
                   <Metadata metadata={metric.metadata} />
@@ -194,7 +200,7 @@ export function Evidence({
           <EvidenceHeader
             id="logs-heading"
             icon={ScrollText}
-            eyebrow="Supporting telemetry"
+            eyebrow="Recorded evidence"
             title="Logs"
             count={logs.length}
           />
@@ -217,11 +223,11 @@ export function Evidence({
                   >
                   <div className="flex flex-wrap items-center gap-2">
                     {focused && (
-                      <span className="rounded bg-ink px-1.5 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-white">
-                        Selected span log
+                      <span className="rounded bg-ink px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-[0.1em] text-white">
+                        Log for selected step
                       </span>
                     )}
-                    <span className={`rounded border px-1.5 py-0.5 text-[0.65rem] font-extrabold uppercase tracking-[0.1em] ${
+                    <span className={`rounded border px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-[0.1em] ${
                       log.level === "error"
                         ? "border-incident/30 bg-incident/[0.06] text-incident"
                         : "border-steel bg-canvas text-slate"
@@ -232,21 +238,26 @@ export function Evidence({
                       {log.service}
                     </span>
                     {log.environment && (
-                      <span className="font-mono text-[0.68rem] text-slate">{log.environment}</span>
+                      <span className="font-mono text-xs text-slate">{log.environment}</span>
                     )}
                   </div>
                   <p className="mt-2 break-words text-sm font-semibold leading-5 text-ink [overflow-wrap:anywhere]">
                     {log.message}
                   </p>
                   {log.stackTrace && (
-                    <pre className="mt-2 overflow-x-auto rounded-md bg-canvas p-2.5 font-mono text-[0.68rem] leading-5 text-slate">
+                    <pre className="mt-2 overflow-x-auto rounded-md bg-canvas p-2.5 font-mono text-xs leading-5 text-slate">
                       {log.stackTrace}
                     </pre>
                   )}
-                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[0.68rem] text-slate">
-                    <time dateTime={log.timestamp}>{formatTime(log.timestamp)}</time>
-                    {log.traceId && <span className="max-w-full truncate" title={log.traceId}>trace {log.traceId}</span>}
-                    {log.spanId && <span className="max-w-full truncate" title={log.spanId}>span {log.spanId}</span>}
+                  <div className="mt-2 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-slate">
+                    <time dateTime={log.timestamp} className="font-mono">{formatTime(log.timestamp)}</time>
+                    <ExactIdentifiers
+                      summary="Log IDs"
+                      identifiers={[
+                        ...(log.traceId ? [{ label: "Trace ID", value: log.traceId }] : []),
+                        ...(log.spanId ? [{ label: "Span ID", value: log.spanId }] : []),
+                      ]}
+                    />
                   </div>
                   <Metadata metadata={log.metadata} />
                   </li>
@@ -255,7 +266,7 @@ export function Evidence({
             </ul>
           ) : (
             <p className="px-5 py-10 text-center text-sm text-slate">
-              No error logs found in this investigation window.
+              No logs found in this investigation window.
             </p>
           )}
         </section>

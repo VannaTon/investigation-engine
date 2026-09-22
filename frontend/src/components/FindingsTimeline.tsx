@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { FindingEvidenceReview } from "./FindingEvidenceReview";
 import { InvestigationDetailSection } from "./InvestigationDetailSection";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import { buildFindingEvidenceReview } from "../lib/findingEvidenceReview";
 import { findingDomId } from "../lib/correlations";
 import { formatMetric, formatTime, humanize, parseTimestamp } from "../lib/formatters";
@@ -124,21 +125,21 @@ function FindingRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {highlighted && (
-              <span className="rounded bg-ink px-1.5 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-white">
+              <span className="rounded bg-ink px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-[0.1em] text-white">
                 {highlightedLabel}
               </span>
             )}
             <span
-              className={`text-[0.65rem] font-extrabold uppercase tracking-[0.13em] ${styles.label}`}
+              className={`text-xs font-extrabold uppercase tracking-[0.13em] ${styles.label}`}
             >
               {finding.severity} severity
             </span>
             <span className="text-steel" aria-hidden="true">/</span>
-            <span className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate">
+            <span className="text-xs font-bold uppercase tracking-[0.1em] text-slate">
               {humanize(finding.type)}
             </span>
             {finding.service && (
-              <span className="rounded bg-canvas px-1.5 py-0.5 font-mono text-[0.65rem] font-semibold text-slate">
+              <span className="rounded bg-canvas px-1.5 py-0.5 font-mono text-xs font-semibold text-slate">
                 {finding.service}
               </span>
             )}
@@ -146,19 +147,16 @@ function FindingRow({
           <p className="mt-1.5 break-words text-sm font-semibold leading-5 text-ink [overflow-wrap:anywhere]">
             {finding.message}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-[0.68rem] text-slate">
+          <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-xs text-slate">
             <time dateTime={finding.timestamp}>{formatTime(finding.timestamp)}</time>
-            {finding.traceId && (
-              <span className="max-w-full truncate rounded bg-canvas px-1.5 py-0.5" title={finding.traceId}>
-                trace {finding.traceId}
-              </span>
-            )}
-            {finding.spanId && (
-              <span className="max-w-full truncate rounded bg-canvas px-1.5 py-0.5" title={finding.spanId}>
-                span {finding.spanId}
-              </span>
-            )}
           </div>
+          <ExactIdentifiers
+            identifiers={[
+              ...(finding.traceId ? [{ label: "Trace ID", value: finding.traceId }] : []),
+              ...(finding.spanId ? [{ label: "Span ID", value: finding.spanId }] : []),
+            ]}
+            className="mt-2"
+          />
           <button
             type="button"
             aria-expanded={reviewed}
@@ -217,7 +215,7 @@ function timelinePresentation(item: InvestigationTimelineItem) {
         Icon: CheckCircle2,
         label: "Alert resolved",
         title: item.data.title,
-        detail: "Alert lifecycle closed",
+        detail: "Alert resolved",
         critical: false,
       };
   }
@@ -237,7 +235,7 @@ function TimelineRow({ item, last }: { item: InvestigationTimelineItem; last: bo
       )}
       <time
         dateTime={item.timestamp}
-        className="col-span-2 font-mono text-[0.68rem] font-semibold tabular-nums text-slate sm:col-span-1 sm:pt-1"
+        className="col-span-2 font-mono text-xs font-semibold tabular-nums text-slate sm:col-span-1 sm:pt-1"
       >
         {formatTime(item.timestamp).replace(" UTC", "")}
       </time>
@@ -252,7 +250,7 @@ function TimelineRow({ item, last }: { item: InvestigationTimelineItem; last: bo
       </span>
       <div className="min-w-0 pb-1">
         <p
-          className={`text-[0.65rem] font-extrabold uppercase tracking-[0.12em] ${
+          className={`text-xs font-extrabold uppercase tracking-[0.12em] ${
             presentation.critical ? "text-incident" : "text-slate"
           }`}
         >
@@ -415,7 +413,7 @@ export function FindingsTimeline({
         Icon={FileSearch}
         actionLabel="View all"
         drawerTitle="All findings"
-        drawerDescription="Complete metric, log, and trace findings with telemetry references."
+        drawerDescription="All metric, log, and trace findings with links to their recorded evidence."
         grouped={grouped}
         open={findingsOpen}
         onOpenChange={(open) => onOpenSection?.(open ? "findings" : null)}
@@ -430,7 +428,7 @@ export function FindingsTimeline({
                       : "bg-slate"
                   }`} aria-hidden="true" />
                   <span className="truncate font-semibold text-ink">{finding.message}</span>
-                  <span className="shrink-0 font-mono text-[0.65rem] text-slate">
+                  <span className="shrink-0 font-mono text-xs text-slate">
                     {finding.service ?? humanize(finding.type)}
                   </span>
                 </li>
@@ -504,18 +502,18 @@ export function FindingsTimeline({
 
       <InvestigationDetailSection
         id="timeline"
-        eyebrow="Ordered telemetry"
+        eyebrow="Events in time order"
         title="Timeline"
         description={
           orderedTimeline.length === 0
             ? "No timeline events were recorded in this investigation window."
-            : "Key lifecycle events from the investigation window."
+            : "Key alert events from the investigation window."
         }
         count={orderedTimeline.length}
         Icon={Clock3}
         actionLabel="View full timeline"
-        drawerTitle="Chronological evidence"
-        drawerDescription="Complete telemetry and lifecycle sequence ordered by timestamp."
+        drawerTitle="Events in time order"
+        drawerDescription="All recorded evidence and alert events ordered by time."
         grouped={grouped}
         open={timelineOpen}
         onOpenChange={(open) => onOpenSection?.(open ? "timeline" : null)}
@@ -530,7 +528,7 @@ export function FindingsTimeline({
                     <span className={presentation.critical ? "font-semibold text-incident" : "font-semibold text-ink"}>
                       {presentation.label}
                     </span>
-                    <time dateTime={item.timestamp} className="font-mono text-[0.65rem]">
+                    <time dateTime={item.timestamp} className="font-mono text-xs">
                       {formatTime(item.timestamp).replace(" UTC", "")}
                     </time>
                   </span>

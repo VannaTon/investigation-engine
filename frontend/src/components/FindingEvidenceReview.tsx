@@ -8,9 +8,12 @@ import {
 } from "lucide-react";
 import { correlationTypeLabels } from "../lib/evidenceGroups";
 import type { FindingEvidenceReview as FindingEvidenceReviewModel } from "../lib/findingEvidenceReview";
-import { formatTime, humanize } from "../lib/formatters";
+import { formatTime } from "../lib/formatters";
 import { logDomId } from "../lib/investigationTargets";
 import type { ExactSpanReference } from "../lib/exactSpanLogs";
+import { SupportTypeBreakdown, SupportTypeCount } from "./SupportTypes";
+import { ExactIdentifiers } from "./ExactIdentifiers";
+import { signalTypeLabels } from "./StructuralSignals";
 
 interface FindingEvidenceReviewProps {
   id: string;
@@ -29,7 +32,7 @@ function ReviewSection({
 }) {
   return (
     <section className="rounded-lg border border-steel bg-surface p-3.5">
-      <h4 className="flex items-center gap-2 text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">
+      <h4 className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate">
         <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         {title}
       </h4>
@@ -60,35 +63,39 @@ export function FindingEvidenceReview({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-slate">
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-slate">
             Focused evidence review
           </p>
           <h3 className="mt-1 text-sm font-extrabold text-ink">
-            Explicitly linked context
+            Linked evidence
           </h3>
         </div>
         {review.priority !== undefined && (
-          <span className="rounded-md bg-ink px-2 py-1 font-mono text-[0.65rem] font-extrabold text-white">
-            {"Priority #" + review.priority}
+          <span className="rounded-md bg-ink px-2 py-1 font-mono text-xs font-extrabold text-white">
+            {"Finding priority #" + review.priority}
           </span>
         )}
       </div>
       <p className="mt-2 text-xs leading-5 text-slate">
-        Only backend-provided IDs and exact trace/span matches are shown. These
-        links support review; they do not establish causality.
+        Links use recorded IDs; matching a step requires both trace and span IDs.
+        Use these links to review the exact recorded evidence.
       </p>
 
       {!hasExplicitContext ? (
         <p className="mt-3 rounded-md border border-dashed border-steel bg-surface px-3 py-3 text-xs leading-5 text-slate">
-          No explicit linked evidence records were supplied for this finding.
+          No linked evidence is available for this finding.
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
           {review.rank && (
-            <ReviewSection icon={FileSearch} title="Priority rationale">
-              <p className="mt-2 font-mono text-[0.68rem] font-bold text-ink">
-                {"Support score " + review.rank.supportScore}
+            <ReviewSection icon={FileSearch} title="Finding priority reasons">
+              <p className="mt-2 font-mono text-xs font-bold text-ink">
+                <SupportTypeCount count={review.rank.supportScore} />
               </p>
+              <SupportTypeBreakdown
+                correlationTypes={review.rank.correlationTypes}
+                signalTypes={review.rank.signalTypes}
+              />
               {review.rank.reasons.length > 0 ? (
                 <ul className="mt-2 space-y-1.5">
                   {review.rank.reasons.map((reason) => (
@@ -103,21 +110,21 @@ export function FindingEvidenceReview({
                 </ul>
               ) : (
                 <p className="mt-2 text-xs text-slate">
-                  No ranking reasons were supplied.
+                  No ranking reasons are available.
                 </p>
               )}
             </ReviewSection>
           )}
 
           {review.evidenceGroups.length > 0 && (
-            <ReviewSection icon={Layers3} title="Evidence groups">
+            <ReviewSection icon={Layers3} title="Grouped evidence">
               <ul className="mt-2 space-y-2">
                 {review.evidenceGroups.map((group) => (
                   <li key={group.id} className="rounded-md bg-canvas px-3 py-2.5">
                     <p className="text-xs font-semibold leading-5 text-ink">
                       {group.message}
                     </p>
-                    <p className="mt-1 font-mono text-[0.65rem] text-slate">
+                    <p className="mt-1 font-mono text-xs text-slate">
                       {group.findingCount} findings · {group.services.join(", ")}
                     </p>
                   </li>
@@ -127,14 +134,14 @@ export function FindingEvidenceReview({
           )}
 
           {review.correlations.length > 0 && (
-            <ReviewSection icon={Link2} title="Factual relationships">
+            <ReviewSection icon={Link2} title="Connections">
               <ul className="mt-2 space-y-2">
                 {review.correlations.map((correlation) => (
                   <li
                     key={correlation.id}
                     className="rounded-md bg-canvas px-3 py-2.5"
                   >
-                    <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-slate">
+                    <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-slate">
                       {correlationTypeLabels[correlation.type]}
                     </p>
                     <p className="mt-1 text-xs font-semibold leading-5 text-ink">
@@ -147,12 +154,12 @@ export function FindingEvidenceReview({
           )}
 
           {review.signals.length > 0 && (
-            <ReviewSection icon={Network} title="Structural signals">
+            <ReviewSection icon={Network} title="Evidence patterns">
               <ul className="mt-2 space-y-2">
                 {review.signals.map((signal) => (
                   <li key={signal.id} className="rounded-md bg-canvas px-3 py-2.5">
-                    <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-slate">
-                      {humanize(signal.type)}
+                    <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-slate">
+                      {signalTypeLabels[signal.type]}
                     </p>
                     <p className="mt-1 text-xs font-semibold leading-5 text-ink">
                       {signal.message}
@@ -164,11 +171,15 @@ export function FindingEvidenceReview({
           )}
 
           {review.exactSpanReference && (
-            <ReviewSection icon={Waypoints} title="Exact trace/span evidence">
-              <p className="mt-2 break-all font-mono text-[0.65rem] leading-5 text-slate">
-                trace {review.exactSpanReference.traceId} · span{" "}
-                {review.exactSpanReference.spanId}
-              </p>
+            <ReviewSection icon={Waypoints} title="Matching request step">
+              <ExactIdentifiers
+                className="mt-2"
+                summary="Trace and span IDs"
+                identifiers={[
+                  { label: "Trace ID", value: review.exactSpanReference.traceId },
+                  { label: "Span ID", value: review.exactSpanReference.spanId },
+                ]}
+              />
               {review.exactSpan ? (
                 <dl className="mt-2 grid gap-2 rounded-md bg-canvas px-3 py-2.5 text-xs sm:grid-cols-2">
                   <div>
@@ -198,17 +209,18 @@ export function FindingEvidenceReview({
                 </dl>
               ) : (
                 <p className="mt-2 text-xs leading-5 text-slate">
-                  The referenced span is not present in this investigation
-                  response.
+                  The linked step (span) is not available in this investigation
+                  evidence.
                 </p>
               )}
 
               {review.exactSpanLogs.length > 0 ? (
                 <>
-                  <p className="mt-3 flex items-center gap-2 text-[0.65rem] font-extrabold uppercase tracking-[0.1em] text-slate">
+                  <p className="mt-3 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.1em] text-slate">
                     <ScrollText className="h-3.5 w-3.5" aria-hidden="true" />
-                    {review.exactSpanLogs.length} exact-span{" "}
+                    {review.exactSpanLogs.length}{" "}
                     {review.exactSpanLogs.length === 1 ? "log" : "logs"}
+                    {" for this step"}
                   </p>
                   <ul className="mt-2 space-y-2">
                     {review.exactSpanLogs.map(({ index, log }) => (
@@ -216,7 +228,7 @@ export function FindingEvidenceReview({
                         <p className="text-xs font-semibold leading-5 text-ink">
                           {log.message}
                         </p>
-                        <p className="mt-1 font-mono text-[0.65rem] text-slate">
+                        <p className="mt-1 font-mono text-xs text-slate">
                           {log.service} · {formatTime(log.timestamp)}
                         </p>
                       </li>
@@ -237,13 +249,13 @@ export function FindingEvidenceReview({
                       }
                       className="mt-3 inline-flex items-center gap-2 rounded-md border border-steel bg-surface px-2.5 py-1.5 text-xs font-extrabold text-ink hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                     >
-                      Open exact-span telemetry
+                      Open logs for this step
                     </a>
                   )}
                 </>
               ) : (
                 <p className="mt-3 text-xs leading-5 text-slate">
-                  No raw logs share both referenced IDs in this investigation.
+                  No logs share both the recorded trace and span IDs in this investigation.
                 </p>
               )}
             </ReviewSection>

@@ -10,6 +10,8 @@ import {
 } from "../lib/alertList";
 import { formatDateTime } from "../lib/formatters";
 import type { InvestigationAlert } from "../types/investigation";
+import { AlertIdentifiers } from "../components/AlertIdentifiers";
+import { AlertStatusBadge } from "../components/AlertStatusBadge";
 
 type State = { status: "loading" } | { status: "error"; message: string } | {
   status: "ready";
@@ -19,12 +21,6 @@ type State = { status: "loading" } | { status: "error"; message: string } | {
   refreshError?: string;
 };
 const control = "rounded-md border border-steel bg-surface px-3 py-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-const statusStyles = {
-  firing: "border-incident/30 bg-incident/[0.07] text-incident",
-  acknowledged: "border-ink/30 bg-canvas text-ink",
-  resolved: "border-steel bg-surface text-slate",
-};
-
 interface InvestigationsPageProps {
   dataSource: AlertListDataSource;
   initialView?: AlertListView;
@@ -98,7 +94,7 @@ export function InvestigationsPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 id="investigations-title" className="text-2xl font-extrabold tracking-tight text-ink">Investigations</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate">Browse alerts and open their investigation to review the observed evidence.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate">Choose an alert to see where to start and review its evidence.</p>
         </div>
         <button type="button" disabled={busy} onClick={refresh} className={`${control} inline-flex items-center gap-2 font-bold disabled:opacity-50`}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />{state.status === "ready" && state.refreshing ? "Refreshing…" : "Refresh"}
@@ -136,18 +132,18 @@ export function InvestigationsPage({
       </div>}
       {state.status === "ready" && <>
         <p role="status" className="mt-4 text-xs text-slate">
-          Last fetched successfully: <time dateTime={state.fetchedAt}>{formatDateTime(state.fetchedAt)}</time>
+          Last loaded: <time dateTime={state.fetchedAt}>{formatDateTime(state.fetchedAt)}</time>
           {state.refreshing && " · Refreshing alerts…"}
         </p>
         {state.refreshError && <div role="alert" className="mt-4 rounded-xl border border-steel bg-surface p-5">
           <h2 className="font-extrabold">Unable to refresh alerts</h2>
-          <p className="mt-2 text-sm text-slate">{state.refreshError} Showing previously fetched results; they may be out of date.</p>
+          <p className="mt-2 text-sm text-slate">{state.refreshError} Showing the last loaded results; they may be out of date.</p>
           <button type="button" className={`${control} mt-4 font-bold`} onClick={refresh}>Try again</button>
         </div>}
         <p role="status" className="my-4 text-xs text-slate">{visible.length} of {state.alerts.length} alerts · Most recently updated first</p>
         {visible.length === 0 ? <div className="rounded-xl border border-steel bg-surface p-6">
           <h2 className="font-extrabold">{state.alerts.length === 0 ? "No alerts yet" : "No matching alerts"}</h2>
-          <p className="mt-2 text-sm text-slate">{state.alerts.length === 0 ? "Alerts will appear here when the backend records them." : "Try another search or clear the filters."}</p>
+          <p className="mt-2 text-sm text-slate">{state.alerts.length === 0 ? "New alerts will appear here." : "Try another search or clear the filters."}</p>
           {state.alerts.length > 0 && <button type="button" className={`${control} mt-4`} onClick={() => {
             setQuery("");
             setStatus("all");
@@ -157,11 +153,12 @@ export function InvestigationsPage({
           {visible.map((alert) => <li key={alert.id} className="grid gap-4 rounded-xl border border-steel bg-surface p-4 shadow-panel sm:p-5 lg:grid-cols-[minmax(0,1fr)_15rem]">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusStyles[alert.status]}`}>{alert.status}</span>
+                <AlertStatusBadge status={alert.status} />
                 <span className="break-all font-mono text-xs text-slate">{alert.service || "Service not specified"}</span>
               </div>
               <h2 className="mt-3 break-words text-base font-extrabold [overflow-wrap:anywhere]">{alert.title}</h2>
               <p className="mt-1 break-words text-sm leading-6 text-slate [overflow-wrap:anywhere]">{alert.message}</p>
+              <AlertIdentifiers alert={alert} />
               <a href={liveInvestigationHref(alert.id, { query, status })} className="mt-3 inline-flex items-center gap-2 rounded text-sm font-bold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" aria-label={`Open investigation: ${alert.title} (${alert.id})`}>Open investigation<ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
             </div>
             <dl className="grid min-w-0 gap-3 text-xs sm:grid-cols-2 lg:grid-cols-1 lg:content-start">

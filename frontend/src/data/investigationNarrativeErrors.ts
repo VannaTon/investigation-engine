@@ -9,32 +9,32 @@ export function narrativeErrorMessage(
 ): string {
   switch (code) {
     case "NARRATIVE_PROVIDER_TIMEOUT":
-      return "The AI explanation request timed out. Your deterministic investigation is still available.";
+      return "AI explanation is temporarily unavailable because the request timed out. Your evidence and ranking are still available.";
     case "NARRATIVE_PROVIDER_UNAVAILABLE":
-      return "AI explanation is temporarily unavailable. Your deterministic investigation is still available.";
+      return "AI explanation is temporarily unavailable. Your evidence and ranking are still available.";
     case "NARRATIVE_PROVIDER_ERROR":
-      return "The AI provider rejected the explanation request. Your deterministic investigation is still available.";
+      return "AI explanation is temporarily unavailable. The AI service did not accept the request. Your evidence and ranking are still available.";
     case "NARRATIVE_PROVIDER_INVALID_RESPONSE":
-      return "The AI provider returned an invalid response. Your deterministic investigation is still available.";
+      return "AI explanation is temporarily unavailable. The AI service sent a response we could not use. Your evidence and ranking are still available.";
     case "NARRATIVE_INVALID_OUTPUT":
-      return "The AI returned an invalid explanation. Your deterministic investigation is still available.";
+      return "AI explanation is temporarily unavailable. The explanation was not in a usable format. Your evidence and ranking are still available.";
     case "NARRATIVE_GROUNDING_FAILED":
-      return "The generated explanation could not be verified against the investigation evidence.";
+      return "The AI explanation was not shown because it could not be checked against this investigation's evidence. Your evidence and ranking are still available.";
     case "NARRATIVE_SEMANTIC_VALIDATION_FAILED":
-      return "The generated explanation conflicted with deterministic ranking facts and was rejected.";
+      return "The AI explanation was not shown because it disagreed with the evidence-based ranking. Your evidence and ranking are still available.";
     case "NARRATIVE_GENERATION_COOLDOWN":
       return retryAfterSeconds !== undefined
-        ? `A fresh explanation was just generated. Try again in ${retryAfterSeconds} seconds.`
-        : "A fresh explanation was just generated. Try again shortly.";
+        ? `An explanation was just created. Try again in ${retryAfterSeconds} seconds.`
+        : "An explanation was just created. Try again shortly.";
     case "NARRATIVE_NOT_CONFIGURED":
-      return "AI explanation is not configured. Your deterministic investigation is still available.";
+      return "AI explanation is not set up. Your evidence and ranking are still available.";
     case "NARRATIVE_NETWORK_ERROR":
-      return "AI explanation is temporarily unavailable. Your deterministic investigation is still available.";
+      return "AI explanation is temporarily unavailable. Your evidence and ranking are still available.";
     case "NARRATIVE_INVALID_RESPONSE":
-      return "The AI explanation response could not be read. Your deterministic investigation is still available.";
+      return "AI explanation is temporarily unavailable. We could not read the explanation response. Your evidence and ranking are still available.";
     case "NARRATIVE_HTTP_ERROR":
     case "UNKNOWN":
-      return "AI explanation is temporarily unavailable. Your deterministic investigation is still available.";
+      return "AI explanation is temporarily unavailable. Your evidence and ranking are still available.";
   }
 }
 

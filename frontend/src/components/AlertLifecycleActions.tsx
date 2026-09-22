@@ -39,7 +39,7 @@ export function AlertLifecycleActions({ alert, dataSource, investigationSource, 
   useEffect(() => { if (message && !busy) notice.current?.focus(); }, [message, busy]);
 
   async function refreshInvestigation() {
-    setMessage(outcome.current === "saved" ? "Change saved. Refreshing investigation…" : "Checking the latest alert state…");
+    setMessage(outcome.current === "saved" ? "Change saved. Refreshing investigation…" : "Checking the latest alert status…");
     controller.current = new AbortController();
     const timer = setTimeout(() => controller.current?.abort(), 15000);
     try {
@@ -50,16 +50,16 @@ export function AlertLifecycleActions({ alert, dataSource, investigationSource, 
       setNeedsRefresh(false);
       setWarning(outcome.current !== "saved");
       setMessage(outcome.current === "saved" ? "Change saved. Investigation refreshed."
-        : outcome.current === "conflict" ? "The alert changed before your action completed. Its latest state is now displayed."
-        : outcome.current === "rejected" ? "The update was rejected. Its latest state is displayed; review it before trying again."
-        : "The request outcome could not be confirmed. Its latest state is displayed; review it before trying again.");
+        : outcome.current === "conflict" ? "The alert changed before your update finished. The latest status is shown."
+        : outcome.current === "rejected" ? "The change was not accepted. The latest status is shown; check it before trying again."
+        : "We could not confirm whether the change was saved. The latest alert status is shown; check it before trying again.");
     } catch {
       if (!active.current) return;
       setNeedsRefresh(true);
       setWarning(true);
       setMessage(outcome.current === "saved"
         ? "Change saved, but the investigation could not be refreshed. The displayed evidence and status may be out of date."
-        : "The latest alert state could not be loaded. The displayed information may be out of date. Refresh before trying another action.");
+        : "The latest alert status could not be loaded. This page may be out of date. Refresh before trying another action.");
     } finally { clearTimeout(timer); }
   }
 
@@ -93,6 +93,7 @@ export function AlertLifecycleActions({ alert, dataSource, investigationSource, 
   }
 
   return <section aria-label="Alert actions" className="my-4 rounded-xl border border-steel bg-surface p-4">
+    <p className="mb-3 text-sm text-slate">Acknowledge marks the alert as seen. Resolve closes the alert.</p>
     <div className="flex flex-wrap items-center gap-3">
       {alert.status === "firing" && <button type="button" className={control} disabled={busy || needsRefresh || confirming} onClick={() => void run("acknowledged")}>Acknowledge</button>}
       {alert.status !== "resolved" && <button ref={resolveButton} type="button" className={control} disabled={busy || needsRefresh || confirming} onClick={() => setConfirming(true)}>Resolve</button>}
@@ -103,10 +104,10 @@ export function AlertLifecycleActions({ alert, dataSource, investigationSource, 
       if (event.key === "Escape") { setConfirming(false); resolveButton.current?.focus(); }
     }}>
       <h2 id="resolve-confirmation" className="font-bold">Resolve this alert?</h2>
-      <p className="mt-2 text-sm text-slate">This manually closes the alert and finalizes its investigation window. It does not verify that the service has recovered.</p>
+      <p className="mt-2 text-sm text-slate">This closes the alert and sets an end time for its evidence window. It does not confirm that the service has recovered.</p>
       <div className="mt-3 flex flex-wrap gap-3">
         <button ref={cancel} type="button" className={control} onClick={() => { setConfirming(false); resolveButton.current?.focus(); }}>Cancel</button>
-        <button type="button" className={control} onClick={() => void run("resolved")}>Confirm resolution</button>
+        <button type="button" className={control} onClick={() => void run("resolved")}>Resolve alert</button>
       </div>
     </div>}
     {message && <p ref={notice} tabIndex={-1} role={warning ? "alert" : "status"} className="mt-3 text-sm text-slate focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-ink">{message}</p>}

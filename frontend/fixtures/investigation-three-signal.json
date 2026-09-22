@@ -3,7 +3,7 @@
     "id": "alert-unified-three-signal-001",
     "ruleId": "rule-unified-three-signal-001",
     "status": "firing",
-    "title": "Unified checkout failure",
+    "title": "Checkout failures detected",
     "message": "checkout failures exceeded threshold 1",
     "service": "demo-checkout",
     "startedAt": "2026-09-07T07:09:37.373Z",
@@ -46,7 +46,7 @@
       "data": {
         "alertId": "alert-unified-three-signal-001",
         "ruleId": "rule-unified-three-signal-001",
-        "title": "Unified checkout failure",
+        "title": "Checkout failures detected",
         "message": "checkout failures exceeded threshold 1"
       }
     },

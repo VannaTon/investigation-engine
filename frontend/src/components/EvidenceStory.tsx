@@ -5,6 +5,8 @@ import { buildInvestigationEvidenceStory } from "../lib/evidenceStory";
 import { findingDomId } from "../lib/correlations";
 import { formatTime, humanize } from "../lib/formatters";
 import { signalTypeLabels } from "./StructuralSignals";
+import { SupportTypeCount } from "./SupportTypes";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import type { EvidenceStoryFindingReference } from "../lib/evidenceStory";
 import type {
   InvestigationCorrelation,
@@ -45,7 +47,7 @@ function FindingList({
   onReviewFinding: (findingId: string) => void;
 }) {
   if (references.length === 0) {
-    return <p className="mt-3 text-xs leading-5 text-slate">No finding references listed.</p>;
+    return <p className="mt-3 text-xs leading-5 text-slate">No linked findings listed.</p>;
   }
 
   return (
@@ -55,8 +57,8 @@ function FindingList({
         if (!finding) {
           return (
             <li key={id} className="rounded-md border border-dashed border-steel bg-surface px-3 py-2">
-              <p className="text-xs font-bold text-slate">Finding reference unavailable</p>
-              <p className="mt-1 break-all font-mono text-[0.65rem] text-slate">{id}</p>
+              <p className="text-xs font-bold text-slate">Linked finding unavailable</p>
+              <ExactIdentifiers className="mt-2" summary="Finding ID" identifiers={[{ label: "Finding ID", value: id }]} />
             </li>
           );
         }
@@ -76,26 +78,24 @@ function FindingList({
             >
               <span className="flex flex-wrap items-center gap-1.5">
                 {priority !== undefined && (
-                  <span className="font-mono text-[0.65rem] font-extrabold text-slate">
-                    Priority #{priority}
+                  <span className="font-mono text-xs font-extrabold text-slate">
+                    Finding priority #{priority}
                   </span>
                 )}
-                <span className={`rounded border px-1.5 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.09em] ${severityStyles[finding.severity]}`}>
+                <span className={`rounded border px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-[0.09em] ${severityStyles[finding.severity]}`}>
                   {finding.severity}
                 </span>
-                <span className="text-[0.62rem] font-bold uppercase tracking-[0.09em] text-slate">
+                <span className="text-xs font-bold uppercase tracking-[0.09em] text-slate">
                   {humanize(finding.type)}
                 </span>
                 {rank && (
-                  <span className="ml-auto font-mono text-[0.62rem] font-bold text-slate">
-                    Support {rank.supportScore}
-                  </span>
+                  <SupportTypeCount count={rank.supportScore} className="ml-auto font-mono text-xs font-bold text-slate" />
                 )}
               </span>
               <span className="mt-1.5 block break-words text-xs font-semibold leading-5 text-ink [overflow-wrap:anywhere]">
                 {finding.message}
               </span>
-              <span className="mt-1 block font-mono text-[0.65rem] text-slate">
+              <span className="mt-1 block font-mono text-xs text-slate">
                 {finding.service ?? "Service not specified"} · {formatTime(finding.timestamp)}
               </span>
             </a>
@@ -144,19 +144,19 @@ export function EvidenceStory({
     >
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-steel px-5 py-4 sm:px-6">
         <div>
-          <p className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.17em] text-slate">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.17em] text-slate">
             <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
-            Evidence synthesis
+            Connected evidence
           </p>
           <h2 id="evidence-story-heading" className="mt-1 text-base font-extrabold tracking-tight text-ink">
             How the observations connect
           </h2>
           <p id="evidence-story-description" className="mt-1 max-w-3xl text-xs leading-5 text-slate">
-            Backend-ranked findings are organized by explicit evidence groups, relationships, and structural signals. These connections do not establish causality.
+            Findings are organized using recorded groups, connections, and patterns. Finding priority is the order for reviewing findings, separate from candidate rank. Support counts distinct types, not records.
           </p>
         </div>
         <div className="flex gap-2 font-mono text-xs font-bold text-slate">
-          <span className="rounded-md bg-canvas px-2 py-1">{story.threads.length} {story.threads.length === 1 ? "thread" : "threads"}</span>
+          <span className="rounded-md bg-canvas px-2 py-1">{story.threads.length} {story.threads.length === 1 ? "group" : "groups"}</span>
           <span className="rounded-md bg-canvas px-2 py-1">{findings.length} findings</span>
         </div>
       </div>
@@ -183,13 +183,13 @@ export function EvidenceStory({
               >
                 <header className="flex flex-wrap items-start justify-between gap-3 border-b border-steel bg-canvas/50 px-4 py-3.5">
                   <div className="min-w-0">
-                    <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-slate">
-                      Evidence thread {String(index + 1).padStart(2, "0")}
+                    <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-slate">
+                      Evidence group {String(index + 1).padStart(2, "0")}
                     </p>
                     <h3 className="mt-1 break-words text-sm font-extrabold text-ink [overflow-wrap:anywhere]">
                       {thread.group.message}
                     </h3>
-                    <p className="mt-1 font-mono text-[0.65rem] leading-5 text-slate">
+                    <p className="mt-1 font-mono text-xs leading-5 text-slate">
                       <time dateTime={thread.group.startedAt}>{formatTime(thread.group.startedAt)}</time>
                       <span className="mx-1.5" aria-hidden="true">→</span>
                       <time dateTime={thread.group.endedAt}>{formatTime(thread.group.endedAt)}</time>
@@ -197,7 +197,7 @@ export function EvidenceStory({
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {thread.group.services.map((service) => (
-                      <span key={service} className="rounded bg-surface px-2 py-1 font-mono text-[0.65rem] font-semibold text-ink">
+                      <span key={service} className="rounded bg-surface px-2 py-1 font-mono text-xs font-semibold text-ink">
                         {service}
                       </span>
                     ))}
@@ -206,7 +206,7 @@ export function EvidenceStory({
 
                 <div className="grid divide-y divide-steel lg:grid-cols-3 lg:divide-x lg:divide-y-0">
                   <section className="min-w-0 p-4" aria-labelledby={`story-findings-${index}`}>
-                    <p id={`story-findings-${index}`} className="flex items-center gap-2 text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">
+                    <p id={`story-findings-${index}`} className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate">
                       <FileSearch className="h-3.5 w-3.5" aria-hidden="true" />
                       Observed findings
                     </p>
@@ -219,16 +219,16 @@ export function EvidenceStory({
                   </section>
 
                   <section className="min-w-0 p-4" aria-labelledby={`story-correlations-${index}`}>
-                    <p id={`story-correlations-${index}`} className="flex items-center gap-2 text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">
+                    <p id={`story-correlations-${index}`} className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate">
                       <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                      Factual connections
+                      Connections
                     </p>
                     {thread.correlations.length > 0 ? (
                       <ul className="mt-3 space-y-2">
                         {thread.correlations.map(({ id, correlation }) =>
                           correlation ? (
                             <li key={id} className="rounded-md border border-steel bg-surface px-3 py-2.5">
-                              <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-slate">
+                              <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-slate">
                                 {correlationTypeLabels[correlation.type]}
                               </p>
                               <p className="mt-1 break-words text-xs font-semibold leading-5 text-ink [overflow-wrap:anywhere]">
@@ -237,27 +237,27 @@ export function EvidenceStory({
                             </li>
                           ) : (
                             <li key={id} className="rounded-md border border-dashed border-steel bg-surface px-3 py-2.5">
-                              <p className="text-xs font-bold text-slate">Relationship reference unavailable</p>
-                              <p className="mt-1 break-all font-mono text-[0.65rem] text-slate">{id}</p>
+                              <p className="text-xs font-bold text-slate">Linked connection unavailable</p>
+                            <ExactIdentifiers className="mt-2" summary="Connection ID" identifiers={[{ label: "Connection ID", value: id }]} />
                             </li>
                           ),
                         )}
                       </ul>
                     ) : (
-                      <p className="mt-3 text-xs leading-5 text-slate">No explicit relationships listed.</p>
+                      <p className="mt-3 text-xs leading-5 text-slate">No recorded connections listed.</p>
                     )}
                   </section>
 
                   <section className="min-w-0 p-4" aria-labelledby={`story-signals-${index}`}>
-                    <p id={`story-signals-${index}`} className="flex items-center gap-2 text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">
+                    <p id={`story-signals-${index}`} className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate">
                       <Network className="h-3.5 w-3.5" aria-hidden="true" />
-                      Structural patterns
+                      Evidence patterns
                     </p>
                     {thread.signals.length > 0 ? (
                       <ul className="mt-3 space-y-2">
                         {thread.signals.map((signal) => (
                           <li key={signal.id} className="rounded-md border border-steel bg-surface px-3 py-2.5">
-                            <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-slate">
+                            <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-slate">
                               {signalTypeLabels[signal.type]}
                             </p>
                             <p className="mt-1 break-words text-xs font-semibold leading-5 text-ink [overflow-wrap:anywhere]">
@@ -267,7 +267,7 @@ export function EvidenceStory({
                         ))}
                       </ul>
                     ) : (
-                      <p className="mt-3 text-xs leading-5 text-slate">No structural signals listed.</p>
+                      <p className="mt-3 text-xs leading-5 text-slate">No evidence patterns listed.</p>
                     )}
                   </section>
                 </div>
@@ -288,12 +288,12 @@ export function EvidenceStory({
 
           {story.ungroupedFindings.length > 0 && (
             <article className="rounded-lg border border-dashed border-steel bg-canvas/30 p-4">
-              <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-slate">
-                Outside explicit evidence groups
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-slate">
+                Outside recorded evidence groups
               </p>
               <h3 className="mt-1 text-sm font-extrabold text-ink">Unconnected findings</h3>
               <p className="mt-1 text-xs leading-5 text-slate">
-                These findings remain visible, but the backend did not place them in an evidence group.
+                These findings remain visible, but were not placed in a recorded evidence group.
               </p>
               <div className="max-w-xl">
                 <FindingList

@@ -6,6 +6,7 @@ import {
 } from "./FixtureSelector";
 
 interface TopBarProps {
+  productLabel?: string;
   pageTitle?: string;
   fixtureOptions: readonly FixtureSelectorOption[];
   selectedAlertId: string | null;
@@ -16,6 +17,7 @@ interface TopBarProps {
 }
 
 export function TopBar({
+  productLabel = "Investigations",
   pageTitle = "Investigation detail",
   fixtureOptions,
   selectedAlertId,
@@ -41,8 +43,8 @@ export function TopBar({
           </button>
 
           <div className="min-w-0">
-            <p className="truncate text-[0.65rem] font-bold uppercase tracking-[0.15em] text-slate">
-              Investigations
+            <p className="truncate text-xs font-bold uppercase tracking-[0.15em] text-slate">
+              {productLabel}
             </p>
             <p className="truncate text-sm font-extrabold text-ink">
               {pageTitle}

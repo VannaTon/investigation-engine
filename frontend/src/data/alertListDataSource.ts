@@ -3,9 +3,9 @@ import { parseTimestamp } from "../lib/formatters";
 
 export class AlertListError extends Error {
   constructor(public readonly kind: "network" | "http" | "invalid", public readonly status?: number) {
-    super(kind === "network" ? "The backend could not be reached. Check the connection and try again."
-      : kind === "http" ? `The API returned status ${status}. Try again.`
-      : "The API returned an invalid alert list. Try again or check the backend.");
+    super(kind === "network" ? "We could not connect to the server. Check your connection and try again."
+      : kind === "http" ? `The server could not load the alerts (error ${status}). Try again.`
+      : "The server sent an alert list we could not use. Try again.");
   }
 }
 

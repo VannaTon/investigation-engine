@@ -15,6 +15,13 @@ import {
 } from "./data/investigationDataSource";
 import { InvestigationPage } from "./pages/InvestigationPage";
 import { InvestigationsPage } from "./pages/InvestigationsPage";
+import { AlertRulesPage } from "./pages/AlertRulesPage";
+import { ApplicationsPage } from "./pages/ApplicationsPage";
+import { HttpAlertRuleDataSource } from "./data/alertRuleDataSource";
+import { HttpMetricSampleDataSource } from "./data/metricSampleDataSource";
+import { HttpMetricDiscoveryDataSource } from "./data/metricDiscoveryDataSource";
+import { HttpApplicationDataSource } from "./data/applicationDataSource";
+import { runtimeConfig } from "./config/runtimeConfig";
 import {
   alertListHref,
   alertListViewFromSearch,
@@ -24,6 +31,20 @@ import {
 export function isInvestigationListPath(pathname: string): boolean {
   return pathname === "/" || pathname === "/investigations" || pathname === "/investigations/";
 }
+
+export function isAlertRulesPath(pathname: string): boolean {
+  return pathname === "/alert-rules" || pathname === "/alert-rules/";
+}
+export function isApplicationsPath(pathname: string): boolean {
+  return pathname === "/applications" || pathname === "/applications/";
+}
+
+
+// Rule management always uses the live API, even when investigation fixtures are selected.
+const configuredAlertRuleDataSource = new HttpAlertRuleDataSource(runtimeConfig.apiBaseUrl);
+const configuredMetricSampleDataSource = new HttpMetricSampleDataSource(runtimeConfig.apiBaseUrl);
+const configuredMetricDiscoveryDataSource = new HttpMetricDiscoveryDataSource(runtimeConfig.apiBaseUrl);
+const configuredApplicationDataSource = new HttpApplicationDataSource(runtimeConfig.apiBaseUrl);
 
 export function alertIdFromPath(pathname: string): string | null {
   if (pathname === "/") return defaultAlertId;
@@ -88,18 +109,23 @@ function App() {
   }
 
   const listPage = isInvestigationListPath(pathname);
+  const rulePage = isAlertRulesPath(pathname);
+  const applicationPage = isApplicationsPath(pathname);
   const workspaceView = alertListViewFromSearch(locationSearch);
   const workspaceHref = alertListHref(workspaceView);
   return (
     <AppShell
+      activeProduct={applicationPage ? "applications" : rulePage ? "alert-rules" : "investigations"}
       investigationHref={workspaceHref}
-      currentAlertId={listPage ? null : alertId}
-      showInvestigationNavigation={!listPage && alertId !== null}
-      pageTitle={listPage ? "Investigation workspace" : "Investigation detail"}
-      fixtureOptions={usesFixtureData && !listPage ? fixtureOptions : []}
+      currentAlertId={listPage || rulePage || applicationPage ? null : alertId}
+      showInvestigationNavigation={!listPage && !rulePage && !applicationPage && alertId !== null}
+      pageTitle={applicationPage ? "Applications" : rulePage ? "Alert rules" : listPage ? "Investigations" : "Investigation detail"}
+      fixtureOptions={usesFixtureData && !listPage && !rulePage && !applicationPage ? fixtureOptions : []}
       onSelectFixture={navigateToInvestigation}
     >
-      {listPage ? <InvestigationsPage
+      {applicationPage ? <ApplicationsPage dataSource={configuredApplicationDataSource} apiBaseUrl={runtimeConfig.apiBaseUrl} />
+        : rulePage ? <AlertRulesPage dataSource={configuredAlertRuleDataSource} applicationDataSource={configuredApplicationDataSource}
+          sampleDataSource={configuredMetricSampleDataSource} discoveryDataSource={configuredMetricDiscoveryDataSource} /> : listPage ? <InvestigationsPage
         dataSource={configuredAlertListDataSource}
         initialView={workspaceView}
         onViewChange={updateWorkspaceView}

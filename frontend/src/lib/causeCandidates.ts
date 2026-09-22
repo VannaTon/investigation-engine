@@ -16,19 +16,19 @@ export const tracePositionPresentations: Record<
   { label: string; explanation: string }
 > = {
   observed_leaf_failure: {
-    label: "Observed failing leaf",
+    label: "Failing step at branch end",
     explanation:
-      "The observed failing branch ends at this span in the reconstructed trace. This does not establish a confirmed origin.",
+      "The recorded failing branch ends at this step (span) in the call path. This does not confirm where the failure started.",
   },
   error_ancestor: {
-    label: "Error ancestor",
+    label: "Failure with nested failing steps",
     explanation:
-      "A failing span has an observed error descendant in the reconstructed trace.",
+      "This failing step (span) has another recorded failing step below it in the call path.",
   },
   other_failure: {
-    label: "Other observed failure",
+    label: "Other recorded failure",
     explanation:
-      "Failure evidence is present without an observed leaf or error-ancestor position.",
+      "A failure was recorded, but its place in the call path is neither an observed branch end nor a failing step with nested errors.",
   },
 };
 

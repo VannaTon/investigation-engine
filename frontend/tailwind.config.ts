@@ -8,9 +8,12 @@ export default {
         canvas: "#F3F6F8",
         surface: "#FFFFFF",
         ink: "#17212B",
-        slate: "#627181",
+        slate: "#526171",
         steel: "#D5DEE5",
         incident: "#B4232D",
+      },
+      fontSize: {
+        xs: ["0.8125rem", { lineHeight: "1.25rem" }],
       },
       boxShadow: {
         panel: "0 1px 2px rgb(23 33 43 / 0.05), 0 8px 24px rgb(23 33 43 / 0.04)",

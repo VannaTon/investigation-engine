@@ -4,6 +4,8 @@ import { findingDomId, buildFindingLookup } from "../lib/correlations";
 import { correlationTypeLabels } from "../lib/evidenceGroups";
 import { humanize } from "../lib/formatters";
 import { signalTypeLabels } from "./StructuralSignals";
+import { SupportTypeCount } from "./SupportTypes";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import type {
   InvestigationEvidenceRank,
   InvestigationFinding,
@@ -57,15 +59,15 @@ export function EvidencePriority({
     >
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-steel px-5 py-4 sm:px-6">
         <div>
-          <p className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.17em] text-slate">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.17em] text-slate">
             <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
-            Backend ordering
+            Finding review order
           </p>
           <h2 id="evidence-priority-heading" className="mt-1 text-base font-extrabold tracking-tight text-ink">
-            Evidence priority
+            Finding priority
           </h2>
           <p id="evidence-priority-description" className="mt-1 max-w-2xl text-xs leading-5 text-slate">
-            Severity is considered first. Structural correlation and signal support are considered second.
+            Findings are ordered by severity first, then by the types of connections and patterns that support them. Finding priority is the order for reviewing findings, separate from candidate rank. Support counts distinct types, not records.
           </p>
         </div>
         <span className="rounded-md bg-canvas px-2 py-1 font-mono text-xs font-bold text-slate">
@@ -98,11 +100,11 @@ export function EvidencePriority({
                 }`}
               >
                 <article
-                  className="grid gap-3 px-4 py-3 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:items-center sm:px-5"
+                  className="grid gap-3 px-4 py-3 sm:grid-cols-[10.5rem_minmax(0,1fr)_auto] sm:items-center sm:px-5"
                   title={`Ordering reasons: ${rank.reasons.join("; ")}`}
                 >
                   <span className="font-mono text-sm font-extrabold tabular-nums text-slate">
-                    #{index + 1}
+                    Finding priority #{index + 1}
                   </span>
                   <div className="min-w-0">
                     {finding ? (
@@ -115,29 +117,27 @@ export function EvidencePriority({
                         >
                           {finding.message}
                         </a>
-                        <p className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[0.68rem] text-slate">
+                        <p className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate">
                           <span className="font-bold uppercase tracking-[0.1em]">{humanize(finding.type)}</span>
                           <span className="font-mono">{finding.service ?? "Service not specified"}</span>
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="break-all font-mono text-xs font-bold text-ink">{rank.findingId}</p>
-                        <p className="mt-1 text-xs text-slate">Finding reference is not present in this response.</p>
+                      <p className="text-xs text-slate">Linked finding unavailable in this investigation.</p>
+                      <ExactIdentifiers className="mt-2" summary="Finding ID" identifiers={[{ label: "Finding ID", value: rank.findingId }]} />
                       </>
                     )}
-                    <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.68rem] leading-5 text-slate">
-                      <span><strong className="text-ink">Correlation:</strong> {correlationSupport}</span>
-                      <span><strong className="text-ink">Signals:</strong> {signalSupport}</span>
+                    <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs leading-5 text-slate">
+                      <span><strong className="text-ink">Connections:</strong> {correlationSupport}</span>
+                      <span><strong className="text-ink">Patterns:</strong> {signalSupport}</span>
                     </p>
                   </div>
                   <div className="flex items-center gap-2 sm:flex-col sm:items-end">
-                    <span className={`rounded-md border px-2 py-1 text-[0.65rem] font-extrabold uppercase tracking-[0.1em] ${styles.badge}`}>
+                    <span className={`rounded-md border px-2 py-1 text-xs font-extrabold uppercase tracking-[0.1em] ${styles.badge}`}>
                       {rank.severity}
                     </span>
-                    <span className="rounded-md border border-steel bg-surface px-2 py-1 font-mono text-xs font-extrabold text-ink">
-                      Support {rank.supportScore}
-                    </span>
+                    <SupportTypeCount count={rank.supportScore} className="rounded-md border border-steel bg-surface px-2 py-1 font-mono text-xs font-extrabold text-ink" />
                     {finding && (
                       <a
                         href={`#${findingDomId(finding.id)}`}

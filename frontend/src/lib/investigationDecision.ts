@@ -25,10 +25,10 @@ export interface InvestigationDecision {
 }
 
 const evidenceLabels: Record<DecisionEvidenceKind, string> = {
-  exact_span_error_log: "Exact-span ERROR log",
-  metric_threshold: "Metric threshold evidence",
-  cross_service_failure: "Cross-service failure",
-  trace_failure_chain: "Trace failure chain",
+  exact_span_error_log: "Error log linked to the same step",
+  metric_threshold: "Metric reading met an alert rule",
+  cross_service_failure: "Failures across services",
+  trace_failure_chain: "Failures along a call path",
 };
 
 export function buildInvestigationDecision(

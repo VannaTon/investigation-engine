@@ -1,5 +1,6 @@
 import { findingDomId } from "../lib/correlations";
 import { humanize } from "../lib/formatters";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import type { CorrelationFindingReference } from "../lib/correlations";
 
 interface FindingReferenceListProps {
@@ -25,11 +26,11 @@ export function FindingReferenceList({
                 <span className="block text-xs font-extrabold text-ink">
                   {humanize(finding.type)}
                 </span>
-                <span className="mt-0.5 block truncate font-mono text-[0.66rem] text-slate">
+                <span className="mt-0.5 block truncate font-mono text-xs text-slate">
                   {finding.service ?? "Service not specified"}
                 </span>
               </span>
-              <span className="shrink-0 text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-slate group-hover:text-ink">
+              <span className="shrink-0 text-xs font-extrabold uppercase tracking-[0.1em] text-slate group-hover:text-ink">
                 {finding.severity}
               </span>
             </a>
@@ -39,10 +40,10 @@ export function FindingReferenceList({
             key={id}
             className="rounded-md border border-dashed border-steel bg-canvas px-3 py-2"
           >
-            <p className="break-all font-mono text-[0.68rem] text-slate">{id}</p>
-            <p className="mt-1 text-xs font-semibold text-slate">
-              Finding reference is not present in this response.
+            <p className="text-xs font-semibold text-slate">
+              Linked finding unavailable in this investigation.
             </p>
+            <ExactIdentifiers className="mt-2" summary="Finding ID" identifiers={[{ label: "Finding ID", value: id }]} />
           </li>
         ),
       )}

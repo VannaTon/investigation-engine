@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Boxes, Link2, Network, Waypoints } from "lucide-react";
 import { InvestigationDetailSection } from "./InvestigationDetailSection";
 import { FindingReferenceList } from "./FindingReferences";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import { formatTime, humanize } from "../lib/formatters";
 import { buildFindingLookup, resolveFindingIds } from "../lib/correlations";
 import {
@@ -53,16 +54,16 @@ export function EvidenceGroups({
     <InvestigationDetailSection
       id="evidence-groups"
       eyebrow="Connected findings"
-      title="Evidence groups"
+      title="Grouped evidence"
       description={
         groups.length === 0
-          ? "No related evidence groups were identified."
+          ? "No connected evidence groups were found."
           : `${groups.length} ${groups.length === 1 ? "group" : "groups"} · ${connectedFindingCount} connected ${connectedFindingCount === 1 ? "finding" : "findings"}.`
       }
       count={groups.length}
       Icon={Boxes}
       actionLabel="View groups"
-      drawerDescription="Complete factual group context, relationships, services, and participating findings."
+      drawerDescription="All recorded group details, connections, services, and linked findings."
       grouped={grouped}
       open={detailsOpen}
       onOpenChange={onDetailsOpenChange}
@@ -77,7 +78,7 @@ export function EvidenceGroups({
     >
       {groups.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-slate">
-          No related evidence groups were identified.
+          No connected evidence groups were found.
         </p>
       ) : (
         <ol className="space-y-4 p-4 sm:p-5">
@@ -116,9 +117,7 @@ export function EvidenceGroups({
                         <h3 id={headingId} className="break-words text-sm font-extrabold text-ink [overflow-wrap:anywhere]">
                           {group.message}
                         </h3>
-                        <p className="mt-1 break-all font-mono text-[0.62rem] text-slate">
-                          {group.id}
-                        </p>
+                        <ExactIdentifiers className="mt-2" summary="Group ID" identifiers={[{ label: "Evidence group ID", value: group.id }]} />
                       </div>
                     </div>
                     <button
@@ -127,7 +126,7 @@ export function EvidenceGroups({
                       onClick={() => onSelectGroup(selected ? null : group.id)}
                       className="rounded-md border border-steel bg-surface px-2.5 py-1.5 text-xs font-extrabold text-ink hover:border-slate/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                     >
-                      {selected ? "Clear emphasis" : "Emphasize findings"}
+                      {selected ? "Clear highlight" : "Highlight findings"}
                     </button>
                   </div>
 
@@ -136,13 +135,13 @@ export function EvidenceGroups({
                       {group.findingCount} {group.findingCount === 1 ? "finding" : "findings"}
                     </span>
                     <span className="rounded-md border border-steel bg-surface px-2 py-1 text-xs font-bold text-ink">
-                      {group.correlationCount} {group.correlationCount === 1 ? "relationship" : "relationships"}
+                      {group.correlationCount} {group.correlationCount === 1 ? "connection" : "connections"}
                     </span>
                   </div>
 
                   <div className="mt-4 grid gap-4 border-t border-steel pt-4 sm:grid-cols-2">
                     <div className="min-w-0">
-                      <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">Finding types</p>
+                      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate">Finding types</p>
                       <p className="mt-2 break-words text-xs font-semibold leading-5 text-ink">
                         {group.findingTypes.length > 0
                           ? group.findingTypes.map(humanize).join(" · ")
@@ -150,8 +149,8 @@ export function EvidenceGroups({
                       </p>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">Observed window</p>
-                      <p className="mt-2 font-mono text-[0.68rem] leading-5 text-slate">
+                      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate">Observed window</p>
+                      <p className="mt-2 font-mono text-xs leading-5 text-slate">
                         <time dateTime={group.startedAt}>{formatTime(group.startedAt)}</time>
                         <span className="mx-1.5" aria-hidden="true">→</span>
                         <time dateTime={group.endedAt}>{formatTime(group.endedAt)}</time>
@@ -161,11 +160,11 @@ export function EvidenceGroups({
 
                   <div className="mt-4 grid gap-4 border-t border-steel pt-4 sm:grid-cols-2">
                     <div className="min-w-0">
-                      <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">Services</p>
+                      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate">Services</p>
                       {group.services.length > 0 ? (
                         <ul className="mt-2 flex flex-wrap gap-1.5">
                           {group.services.map((service) => (
-                            <li key={service} className="max-w-full break-all rounded bg-surface px-2 py-1 font-mono text-[0.68rem] font-semibold text-ink">
+                            <li key={service} className="max-w-full break-all rounded bg-surface px-2 py-1 font-mono text-xs font-semibold text-ink">
                               {service}
                             </li>
                           ))}
@@ -175,28 +174,28 @@ export function EvidenceGroups({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="flex items-center gap-1.5 text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">
+                      <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-slate">
                         <Waypoints className="h-3.5 w-3.5" aria-hidden="true" />
                         Traces
                       </p>
                       {group.traceIds.length > 0 ? (
                         <ul className="mt-2 space-y-1.5">
                           {group.traceIds.map((traceId) => (
-                            <li key={traceId} className="break-all font-mono text-[0.68rem] text-slate">
-                              {traceId}
+                            <li key={traceId}>
+                              <ExactIdentifiers summary="Trace ID" identifiers={[{ label: "Trace ID", value: traceId }]} />
                             </li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="mt-2 text-xs text-slate">No trace references.</p>
+                        <p className="mt-2 text-xs text-slate">No linked traces.</p>
                       )}
                     </div>
                   </div>
 
                   <div className="mt-4">
-                    <p className="flex items-center gap-1.5 text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">
+                    <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-slate">
                       <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                      Factual relationships
+                      Connections
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {relationshipTypes.map((type) => (
@@ -206,17 +205,22 @@ export function EvidenceGroups({
                       ))}
                       {unresolvedCorrelationIds.map((id) => (
                         <span key={id} title={id} className="rounded-md border border-dashed border-steel bg-surface px-2 py-1 text-xs font-semibold text-slate">
-                          Relationship reference unavailable
+                          Linked connection unavailable
                         </span>
                       ))}
                       {relationshipTypes.length === 0 && unresolvedCorrelationIds.length === 0 && (
-                        <span className="text-xs text-slate">No relationship references.</span>
+                        <span className="text-xs text-slate">No linked connections.</span>
                       )}
                     </div>
+                    <ExactIdentifiers
+                      className="mt-2"
+                      summary="Unavailable connection IDs"
+                      identifiers={unresolvedCorrelationIds.map((id) => ({ label: "Connection ID", value: id }))}
+                    />
                   </div>
 
                   <div className="mt-4">
-                    <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">Participating findings</p>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate">Linked findings</p>
                     <FindingReferenceList
                       references={findingReferences}
                       onNavigateFinding={onNavigateFinding}

@@ -17,6 +17,7 @@ import { findingDomId, signalDomId } from "../lib/correlations";
 import { tracePositionPresentations } from "../lib/causeCandidates";
 import { formatDateTime, humanize } from "../lib/formatters";
 import { signalTypeLabels } from "./StructuralSignals";
+import { SupportTypeCount } from "./SupportTypes";
 import type {
   InvestigationCauseCandidate,
   InvestigationCauseCandidateFacts,
@@ -89,27 +90,27 @@ function NarrativeEvidenceReferences({
   return (
     <div className="mt-3 rounded-lg border border-steel bg-canvas/50 p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="flex items-center gap-1.5 text-[0.64rem] font-extrabold uppercase tracking-[0.12em] text-slate">
+        <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-slate">
           <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-          Evidence references
+          Linked evidence
         </p>
-        <span className="rounded bg-surface px-1.5 py-0.5 font-mono text-[0.62rem] font-bold text-slate">
+        <span className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs font-bold text-slate">
           {referenceCount}
         </span>
-        <span className="text-[0.65rem] leading-5 text-slate">
-          Attached by the backend to this entire explanation block.
+        <span className="text-xs leading-5 text-slate">
+          Linked to this explanation as a whole, not to individual sentences.
         </span>
       </div>
 
       {referenceCount === 0 ? (
         <p className="mt-2 text-xs leading-5 text-slate">
-          No evidence references were returned for this explanation block.
+          No evidence links were provided for this explanation.
         </p>
       ) : (
         <div className="mt-2.5 grid gap-3 lg:grid-cols-2">
           {references.findings.length > 0 && (
             <div>
-              <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-slate">
+              <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-slate">
                 Findings
               </p>
               <ol className="mt-1.5 space-y-1.5">
@@ -121,11 +122,11 @@ function NarrativeEvidenceReferences({
                         onClick={() => onNavigateFinding(id)}
                         className="group flex min-w-0 items-start gap-2 rounded-md border border-steel bg-surface px-2.5 py-2 hover:border-slate/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                       >
-                        <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 font-mono text-[0.62rem] font-extrabold text-ink">
+                        <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 font-mono text-xs font-extrabold text-ink">
                           F{index + 1}
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-[0.65rem] font-extrabold uppercase tracking-[0.08em] text-slate">
+                          <span className="block text-xs font-extrabold uppercase tracking-[0.08em] text-slate">
                             {humanize(finding.type)} · {finding.service ?? "Service not specified"}
                           </span>
                           <span className="mt-0.5 block truncate text-xs font-semibold text-ink" title={finding.message}>
@@ -136,8 +137,8 @@ function NarrativeEvidenceReferences({
                     </li>
                   ) : (
                     <li key={`${id}-${index}`} className="rounded-md border border-dashed border-steel bg-surface px-2.5 py-2">
-                      <p className="text-xs font-bold text-slate">Finding reference unavailable</p>
-                      <p className="mt-1 break-all font-mono text-[0.62rem] text-slate">{id}</p>
+                      <p className="text-xs font-bold text-slate">Linked finding not available</p>
+                      <p className="mt-1 break-all font-mono text-xs text-slate">{id}</p>
                     </li>
                   ),
                 )}
@@ -147,8 +148,8 @@ function NarrativeEvidenceReferences({
 
           {references.signals.length > 0 && (
             <div>
-              <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-slate">
-                Structural signals
+              <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-slate">
+                Evidence patterns
               </p>
               <ol className="mt-1.5 space-y-1.5">
                 {references.signals.map(({ id, signal }, index) =>
@@ -159,11 +160,11 @@ function NarrativeEvidenceReferences({
                         onClick={() => onNavigateSignal(id)}
                         className="group flex min-w-0 items-start gap-2 rounded-md border border-steel bg-surface px-2.5 py-2 hover:border-slate/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                       >
-                        <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 font-mono text-[0.62rem] font-extrabold text-ink">
+                        <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 font-mono text-xs font-extrabold text-ink">
                           S{index + 1}
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-[0.65rem] font-extrabold uppercase tracking-[0.08em] text-slate">
+                          <span className="block text-xs font-extrabold uppercase tracking-[0.08em] text-slate">
                             {signalTypeLabels[signal.type]}
                           </span>
                           <span className="mt-0.5 block truncate text-xs font-semibold text-ink" title={signal.message}>
@@ -174,8 +175,8 @@ function NarrativeEvidenceReferences({
                     </li>
                   ) : (
                     <li key={`${id}-${index}`} className="rounded-md border border-dashed border-steel bg-surface px-2.5 py-2">
-                      <p className="text-xs font-bold text-slate">Signal reference unavailable</p>
-                      <p className="mt-1 break-all font-mono text-[0.62rem] text-slate">{id}</p>
+                      <p className="text-xs font-bold text-slate">Linked pattern not available</p>
+                      <p className="mt-1 break-all font-mono text-xs text-slate">{id}</p>
                     </li>
                   ),
                 )}
@@ -219,7 +220,7 @@ export function InvestigationNarrativeSnapshotContent({
 
   return (
     <div className="border-t border-steel px-5 py-4 sm:px-6">
-      <dl className="flex flex-wrap gap-x-6 gap-y-2 text-[0.68rem]">
+      <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
         <div className="flex items-baseline gap-2">
           <dt className="font-extrabold uppercase tracking-[0.1em] text-slate">Evidence through</dt>
           <dd className="font-mono font-semibold text-ink">{formatDateTime(snapshot.evidenceCutoff)}</dd>
@@ -248,7 +249,7 @@ export function InvestigationNarrativeSnapshotContent({
         <h3 className="text-sm font-extrabold text-ink">Candidate explanations</h3>
         {joinedCandidates.length === 0 ? (
           <p className="mt-2 text-sm text-slate">
-            No deterministic candidates are available for explanation.
+            No ranked starting points are available to explain.
           </p>
         ) : (
           <ul className="mt-2 divide-y divide-steel overflow-hidden rounded-lg border border-steel">
@@ -260,21 +261,21 @@ export function InvestigationNarrativeSnapshotContent({
               return (
                 <li key={rank.candidateId} className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs font-extrabold text-slate">#{rank.rank}</span>
+                    <span className="font-mono text-xs font-extrabold text-slate">Candidate rank #{rank.rank}</span>
                     <p className="break-words font-mono text-sm font-extrabold text-ink [overflow-wrap:anywhere]">
                       {rank.service}
                     </p>
                     {rank.tied && (
-                      <span className="inline-flex items-center gap-1 rounded border border-ink/20 bg-canvas px-1.5 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-[0.1em] text-ink">
+                      <span className="inline-flex items-center gap-1 rounded border border-ink/20 bg-canvas px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-[0.1em] text-ink">
                         <Equal className="h-3 w-3" aria-hidden="true" />
-                        Co-equal candidate
+                        Tied candidate
                       </span>
                     )}
                   </div>
 
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate">
                     {candidateFacts ? (
-                      <span className={`rounded border px-1.5 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-[0.1em] ${severityStyles[candidateFacts.highestSeverity]}`}>
+                      <span className={`rounded border px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-[0.1em] ${severityStyles[candidateFacts.highestSeverity]}`}>
                         {candidateFacts.highestSeverity}
                       </span>
                     ) : (
@@ -284,7 +285,7 @@ export function InvestigationNarrativeSnapshotContent({
                       <GitBranch className="h-3.5 w-3.5 text-slate" aria-hidden="true" />
                       {tracePosition.label}
                     </span>
-                    <span className="font-mono">Support {support}</span>
+                    <SupportTypeCount count={support} className="font-mono" />
                     <span className="font-mono">{failures} {failures === 1 ? "failure" : "failures"}</span>
                   </div>
 
@@ -383,19 +384,18 @@ export function InvestigationNarrativePanel({
     >
       <div className="flex flex-wrap items-start justify-between gap-4 px-5 py-4 sm:px-6">
         <div>
-          <p className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.17em] text-slate">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.17em] text-slate">
             <MessageSquareText className="h-3.5 w-3.5" aria-hidden="true" />
-            Optional explanation layer
+            Optional help
           </p>
           <h2
             id="investigation-narrative-heading"
             className="mt-1 text-base font-extrabold tracking-tight text-ink"
           >
-            AI Investigation Explanation
+            AI explanation
           </h2>
           <p className="mt-1 max-w-3xl text-xs leading-5 text-slate">
-            Generated from the deterministic investigation evidence shown on this
-            page.
+            AI explains the evidence on this page. It does not change the ranking.
           </p>
         </div>
         <button
@@ -422,7 +422,7 @@ export function InvestigationNarrativePanel({
               Generating explanation…
             </p>
             <p className="mt-1 text-xs leading-5 text-slate">
-              Reviewing the current deterministic investigation evidence.
+              Preparing an explanation of this investigation's evidence.
             </p>
           </div>
         </div>

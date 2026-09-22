@@ -13,8 +13,8 @@ export const correlationTypeLabels: Record<
   InvestigationCorrelationType,
   string
 > = {
-  same_span: "Same span",
-  same_trace: "Same trace",
+  same_span: "Same step (span)",
+  same_trace: "Same request path (trace)",
   temporal_service: "Same service and time window",
 };
 

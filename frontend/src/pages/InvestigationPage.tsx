@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertLifecycleActions } from "../components/AlertLifecycleActions";
 import type { AlertLifecycleDataSource } from "../data/alertLifecycleDataSource";
-import { ArrowLeft, RefreshCw, SearchX, ShieldCheck } from "lucide-react";
+import { ArrowLeft, RefreshCw, SearchX } from "lucide-react";
 import { CauseCandidateRanking } from "../components/CauseCandidateRanking";
 import { Evidence } from "../components/Evidence";
 import { EvidenceGroups } from "../components/EvidenceGroups";
@@ -85,20 +85,20 @@ function failureCopy(state: Extract<PageState, { status: "error" }>) {
   switch (state.kind) {
     case "network":
       return {
-        heading: "Unable to load investigation from the API.",
-        detail: "The backend could not be reached. Check the API connection and try again.",
+        heading: "Could not load this investigation.",
+        detail: "We could not connect to the server. Check your connection and try again.",
       };
     case "invalid-response":
       return {
-        heading: "Invalid investigation response.",
-        detail: "The API returned data that does not match the investigation contract.",
+        heading: "Could not read this investigation.",
+        detail: "The server sent investigation data we could not use. Try again.",
       };
     case "http":
       return {
-        heading: "Unable to load investigation from the API.",
+        heading: "Could not load this investigation.",
         detail: state.statusCode
-          ? `The API returned status ${state.statusCode}.`
-          : "The API request was not successful.",
+          ? `The server could not load the investigation (error ${state.statusCode}). Try again.`
+          : "The server could not load the investigation. Try again.",
       };
     case "unexpected":
       return {
@@ -307,7 +307,7 @@ export function InvestigationPage({
         <p className="mt-2 max-w-xl text-sm leading-6 text-slate">
           {state.alertId
             ? "No investigation matches this alert ID."
-            : "Use an investigation URL with an alert ID."}
+            : "Choose an investigation from the list."}
         </p>
         {state.alertId && (
           <p className="mt-2 break-all font-mono text-xs text-slate">{state.alertId}</p>
@@ -318,7 +318,7 @@ export function InvestigationPage({
             onClick={onOpenDefault}
             className="mt-5 rounded-md bg-ink px-3.5 py-2 text-sm font-bold text-white hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
-            Open resolved fixture
+            Open resolved example
           </button>
         )}
       </section></>
@@ -374,7 +374,7 @@ export function InvestigationPage({
   const highlightedFindingLabel = selectedCandidate
     ? "Candidate finding"
     : selectedRankFindingId
-      ? "Selected priority"
+      ? "Selected finding"
       : highlightedFindingIds
         ? "Connected finding"
         : undefined;
@@ -437,7 +437,28 @@ export function InvestigationPage({
   return (
     <>
       <BackToInvestigations href={returnHref} />
-      <InvestigationOverview investigation={investigation} />
+      <InvestigationOverview investigation={investigation}>
+        <CauseCandidateRanking
+          key={`candidates-${investigation.alert.id}`}
+          candidates={investigation.causeCandidates}
+          facts={investigation.causeCandidateFacts}
+          ranks={investigation.causeCandidateRanks}
+          findings={investigation.findings}
+          correlations={investigation.correlations}
+          signals={investigation.signals}
+          selectedCandidateId={selectedCandidateId}
+          onSelectCandidate={(candidateId) => {
+            setSelectedCandidateId(candidateId);
+            if (candidateId) {
+              clearManagedReviewLocation();
+              setSelectedSignalId(null);
+              setSelectedEvidenceGroupId(null);
+              setSelectedCorrelationId(null);
+            }
+          }}
+          onOpenFinding={() => setOpenDetailSection("findings")}
+        />
+      </InvestigationOverview>
       {lifecycleDataSource && investigation.alert.id === alertId && <AlertLifecycleActions
         key={investigation.alert.id}
         alert={investigation.alert}
@@ -445,26 +466,6 @@ export function InvestigationPage({
         investigationSource={dataSource}
         onUpdated={(next) => setState({ status: "ready", investigation: next })}
       />}
-      <CauseCandidateRanking
-        key={`candidates-${investigation.alert.id}`}
-        candidates={investigation.causeCandidates}
-        facts={investigation.causeCandidateFacts}
-        ranks={investigation.causeCandidateRanks}
-        findings={investigation.findings}
-        correlations={investigation.correlations}
-        signals={investigation.signals}
-        selectedCandidateId={selectedCandidateId}
-        onSelectCandidate={(candidateId) => {
-          setSelectedCandidateId(candidateId);
-          if (candidateId) {
-            clearManagedReviewLocation();
-            setSelectedSignalId(null);
-            setSelectedEvidenceGroupId(null);
-            setSelectedCorrelationId(null);
-          }
-        }}
-        onOpenFinding={() => setOpenDetailSection("findings")}
-      />
       <InvestigationNarrativePanel
         alertId={investigation.alert.id}
         dataSource={narrativeDataSource}
@@ -518,7 +519,7 @@ export function InvestigationPage({
         aria-labelledby="details-on-demand-heading"
       >
         <div className="border-b border-steel px-5 py-4 sm:px-6">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.17em] text-slate">
+          <p className="text-xs font-bold uppercase tracking-[0.17em] text-slate">
             Details on demand
           </p>
           <h2
@@ -672,13 +673,6 @@ export function InvestigationPage({
         />
       </section>
 
-      <aside className="mt-6 flex items-start gap-2.5 rounded-lg border border-steel bg-surface px-4 py-3 text-xs leading-5 text-slate">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-ink" aria-hidden="true" />
-        <p>
-          This view reports observed telemetry. Findings, trace failures, and evidence
-          relationships do not establish causality.
-        </p>
-      </aside>
     </>
   );
 }

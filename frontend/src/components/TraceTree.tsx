@@ -11,6 +11,7 @@ import {
   Waypoints,
 } from "lucide-react";
 import { formatDuration, formatTime } from "../lib/formatters";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import {
   buildExactSpanLogLookup,
   exactSpanLogKey,
@@ -79,7 +80,7 @@ function TraceNodeItem({
             type="button"
             className="grid h-8 w-8 place-items-center rounded-md border border-steel bg-canvas text-slate hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             aria-expanded={expanded}
-            aria-label={`${expanded ? "Collapse" : "Expand"} ${node.service} ${node.operation} span`}
+            aria-label={`${expanded ? "Collapse" : "Expand"} ${node.service} ${node.operation} step`}
             onClick={() => setExpanded((value) => !value)}
           >
             {expanded ? (
@@ -96,9 +97,9 @@ function TraceNodeItem({
 
         <div className="min-w-0">
           {isServiceTransition && (
-            <p className="mb-1 flex items-center gap-1 font-mono text-[0.62rem] font-bold uppercase tracking-[0.08em] text-slate">
+            <p className="mb-1 flex items-center gap-1 font-mono text-xs font-bold uppercase tracking-[0.08em] text-slate">
               <ArrowRight className="h-3 w-3" aria-hidden="true" />
-              Service transition
+              Call to another service
             </p>
           )}
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -112,14 +113,15 @@ function TraceNodeItem({
               {node.operation}
             </span>
           </div>
-          <div className="mt-1.5 flex min-w-0 flex-wrap gap-x-3 gap-y-1 font-mono text-[0.66rem] text-slate">
-            <span className="max-w-full truncate" title={node.traceId}>
-              trace {node.traceId}
-            </span>
-            <span className="max-w-full truncate" title={node.spanId}>
-              span {node.spanId}
-            </span>
-            <span>depth {depth}</span>
+          <div className="mt-1.5 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-slate">
+            <span className="font-mono">depth {depth}</span>
+            <ExactIdentifiers
+              summary="Trace and span IDs"
+              identifiers={[
+                { label: "Trace ID", value: node.traceId },
+                { label: "Span ID", value: node.spanId },
+              ]}
+            />
           </div>
         </div>
 
@@ -129,7 +131,7 @@ function TraceNodeItem({
             {formatDuration(node.durationMs)}
           </span>
           <span
-            className={`inline-flex min-w-[4.4rem] items-center justify-end gap-1.5 text-[0.66rem] font-extrabold uppercase tracking-[0.1em] ${
+            className={`inline-flex min-w-[4.4rem] items-center justify-end gap-1.5 text-xs font-extrabold uppercase tracking-[0.1em] ${
               isError ? "text-incident" : "text-slate"
             }`}
           >
@@ -141,10 +143,10 @@ function TraceNodeItem({
         {exactLogs.length > 0 && (
           <div className="col-span-2 col-start-2 border-t border-steel pt-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 text-[0.64rem] font-extrabold uppercase tracking-[0.11em] text-slate">
+              <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.11em] text-slate">
                 <ScrollText className="h-3.5 w-3.5" aria-hidden="true" />
-                Exact-span logs
-                <span className="rounded bg-canvas px-1.5 py-0.5 font-mono text-[0.62rem] text-ink">
+                Logs for this step
+                <span className="rounded bg-canvas px-1.5 py-0.5 font-mono text-xs text-ink">
                   {exactLogs.length}
                 </span>
               </p>
@@ -161,7 +163,7 @@ function TraceNodeItem({
                       spanId: node.spanId,
                     })
                   }
-                  className="inline-flex items-center gap-1 text-[0.68rem] font-extrabold text-slate underline decoration-steel underline-offset-4 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                  className="inline-flex items-center gap-1 text-xs font-extrabold text-slate underline decoration-steel underline-offset-4 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                 >
                   Review linked logs
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -172,7 +174,7 @@ function TraceNodeItem({
               {exactLogs.slice(0, 2).map(({ index, log }) => (
                 <li
                   key={`${log.timestamp}-${log.service}-${index}`}
-                  className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded bg-canvas/70 px-2.5 py-1.5 text-[0.68rem]"
+                  className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded bg-canvas/70 px-2.5 py-1.5 text-xs"
                 >
                   <span className={`font-extrabold uppercase tracking-[0.08em] ${
                     log.level === "error" ? "text-incident" : "text-slate"
@@ -189,8 +191,8 @@ function TraceNodeItem({
               ))}
             </ul>
             {exactLogs.length > 2 && (
-              <p className="mt-1.5 text-[0.65rem] font-semibold text-slate">
-                +{exactLogs.length - 2} more exact-span {exactLogs.length - 2 === 1 ? "log" : "logs"}
+              <p className="mt-1.5 text-xs font-semibold text-slate">
+                +{exactLogs.length - 2} more {exactLogs.length - 2 === 1 ? "log" : "logs"} for this step
               </p>
             )}
           </div>
@@ -198,7 +200,7 @@ function TraceNodeItem({
       </div>
 
       {hasChildren && expanded && (
-        <ul className="trace-children" aria-label={`Child spans of ${node.service} ${node.operation}`}>
+        <ul className="trace-children" aria-label={`Child steps of ${node.service} ${node.operation}`}>
           {node.children.map((child) => (
             <TraceNodeItem
               key={child.spanId}
@@ -234,16 +236,16 @@ export function TraceTree({
     >
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-steel px-5 py-4 sm:px-6">
         <div>
-          <p className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.17em] text-slate">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.17em] text-slate">
             <Waypoints className="h-3.5 w-3.5" aria-hidden="true" />
-            Cross-service call chain
+            Calls between services
           </p>
           <h2 id="trace-heading" className="mt-1 text-lg font-extrabold tracking-tight text-ink">
-            Distributed trace path
+            Request path
           </h2>
-          <p id="trace-description" className="mt-1 max-w-2xl text-xs leading-5 text-slate">
-            Connectors show parent-to-child calls. Error styling identifies failed spans; it
-            does not assign incident causality.
+          <p id="trace-description" className="mt-1 max-w-2xl text-sm leading-5 text-slate">
+            A trace follows a request or operation; a span records one step. Connectors show parent-to-child calls. Error styling marks failed steps; it
+            does not confirm cause.
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-md bg-canvas px-2.5 py-1.5 font-mono text-xs font-bold text-slate">
@@ -257,7 +259,7 @@ export function TraceTree({
           className="trace-scroll overflow-x-auto px-4 py-5 sm:px-6"
           tabIndex={0}
           role="region"
-          aria-label="Scrollable distributed trace hierarchy"
+          aria-label="Scrollable request call path"
         >
           <ul className="min-w-[33rem] space-y-3 sm:min-w-[38rem]">
             {traces.map((trace) => (

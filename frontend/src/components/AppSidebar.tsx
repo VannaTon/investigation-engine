@@ -9,6 +9,7 @@ import {
   FileSearch,
   GitBranch,
   LayoutDashboard,
+  KeyRound,
   ListOrdered,
   MessageSquareText,
   Network,
@@ -29,7 +30,7 @@ export interface InvestigationSectionItem {
 }
 
 export interface InvestigationSectionGroup {
-  id: "investigation" | "evidence" | "deep-evidence";
+  id: "investigation" | "evidence";
   label: string;
   Icon: LucideIcon;
   defaultExpanded: boolean;
@@ -43,7 +44,7 @@ export const investigationSectionGroups: InvestigationSectionGroup[] = [
     Icon: Telescope,
     defaultExpanded: true,
     items: [
-      { id: "candidate-ranking", label: "Candidate ranking", Icon: ListOrdered },
+      { id: "candidate-ranking", label: "Where to start", Icon: ListOrdered },
       { id: "ai-explanation", label: "AI explanation", Icon: MessageSquareText },
     ],
   },
@@ -53,22 +54,14 @@ export const investigationSectionGroups: InvestigationSectionGroup[] = [
     Icon: FileSearch,
     defaultExpanded: false,
     items: [
-      { id: "evidence-priority", label: "Evidence priority", Icon: SlidersHorizontal },
-      { id: "trace-path", label: "Trace path", Icon: GitBranch },
+      { id: "evidence-priority", label: "Finding priority", Icon: SlidersHorizontal },
+      { id: "trace-path", label: "Request path", Icon: GitBranch },
       { id: "findings", label: "Findings", Icon: FileSearch },
       { id: "timeline", label: "Timeline", Icon: Clock3 },
-    ],
-  },
-  {
-    id: "deep-evidence",
-    label: "Deep evidence",
-    Icon: Database,
-    defaultExpanded: false,
-    items: [
-      { id: "evidence-groups", label: "Evidence groups", Icon: Boxes },
-      { id: "relationships", label: "Relationships", Icon: Network },
-      { id: "telemetry", label: "Telemetry", Icon: Database },
-      { id: "integrity", label: "Integrity issues", Icon: ShieldCheck },
+      { id: "evidence-groups", label: "Grouped evidence", Icon: Boxes },
+      { id: "relationships", label: "Connections", Icon: Network },
+      { id: "telemetry", label: "Metrics and logs", Icon: Database },
+      { id: "integrity", label: "Data checks", Icon: ShieldCheck },
     ],
   },
 ];
@@ -124,6 +117,7 @@ export function SidebarNavItem({
 }
 
 interface AppSidebarProps {
+  activeProduct?: "investigations" | "alert-rules" | "applications";
   showInvestigationNavigation?: boolean;
   collapsed: boolean;
   mobileOpen: boolean;
@@ -135,6 +129,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({
+  activeProduct = "investigations",
   showInvestigationNavigation = true,
   collapsed,
   mobileOpen,
@@ -208,7 +203,7 @@ export function AppSidebar({
       aria-label="Application navigation"
       onKeyDown={handleKeyDown}
     >
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-steel px-4">
+      <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-steel px-4">
         <a
           href={investigationHref}
           className="flex min-w-0 items-center gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
@@ -222,7 +217,7 @@ export function AppSidebar({
             <span className="block truncate text-sm font-extrabold tracking-tight text-ink">
               Observability Platform
             </span>
-            <span className="block text-[0.62rem] font-bold uppercase tracking-[0.16em] text-slate">
+            <span className="block truncate text-xs font-bold uppercase tracking-[0.06em] text-slate">
               Incident investigation
             </span>
           </span>
@@ -231,7 +226,7 @@ export function AppSidebar({
           ref={mobileCloseButtonRef}
           type="button"
           onClick={onCloseMobile}
-          className="grid h-9 w-9 place-items-center rounded-md border border-steel text-slate hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink lg:hidden"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-steel text-slate hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink lg:hidden"
           aria-label="Close navigation"
         >
           <X className="h-4 w-4" aria-hidden="true" />
@@ -242,7 +237,7 @@ export function AppSidebar({
         <div>
           <p
             className={
-              "px-3 text-[0.62rem] font-extrabold uppercase tracking-[0.16em] text-slate " +
+              "px-3 text-xs font-extrabold uppercase tracking-[0.16em] text-slate " +
               (collapsed ? "lg:sr-only" : "")
             }
           >
@@ -253,7 +248,25 @@ export function AppSidebar({
               href={investigationHref}
               label="Investigations"
               Icon={Search}
-              active
+              active={activeProduct === "investigations"}
+              collapsed={collapsed}
+              currentType="page"
+              onClick={onCloseMobile}
+            />
+            <SidebarNavItem
+              href="/alert-rules"
+              label="Alert Rules"
+              Icon={SlidersHorizontal}
+              active={activeProduct === "alert-rules"}
+              collapsed={collapsed}
+              currentType="page"
+              onClick={onCloseMobile}
+            />
+            <SidebarNavItem
+              href="/applications"
+              label="Applications"
+              Icon={KeyRound}
+              active={activeProduct === "applications"}
               collapsed={collapsed}
               currentType="page"
               onClick={onCloseMobile}
@@ -266,7 +279,7 @@ export function AppSidebar({
         {showInvestigationNavigation && <div aria-label="Investigation sections">
           <p
             className={
-              "px-3 text-[0.62rem] font-extrabold uppercase tracking-[0.16em] text-slate " +
+              "px-3 text-xs font-extrabold uppercase tracking-[0.16em] text-slate " +
               (collapsed ? "lg:sr-only" : "")
             }
           >

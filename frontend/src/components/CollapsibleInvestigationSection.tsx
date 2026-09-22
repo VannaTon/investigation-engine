@@ -71,7 +71,7 @@ export function CollapsibleInvestigationSection({
         onClick={() => setExpanded((value) => !value)}
       >
         <span className="min-w-0">
-          <span className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.17em] text-slate">
+          <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.17em] text-slate">
             <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             {eyebrow}
           </span>

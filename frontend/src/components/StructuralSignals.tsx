@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { GitBranch, Layers3, Network } from "lucide-react";
 import { InvestigationDetailSection } from "./InvestigationDetailSection";
 import { FindingReferenceList } from "./FindingReferences";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import {
   buildFindingLookup,
   resolveFindingIds,
@@ -14,9 +15,9 @@ import type {
 } from "../types/investigation";
 
 export const signalTypeLabels: Record<InvestigationSignalType, string> = {
-  cross_service_failure: "Cross-service failure evidence",
-  multi_signal_evidence: "Multiple telemetry types",
-  trace_failure_chain: "Trace failure chain",
+  cross_service_failure: "Failures across services",
+  multi_signal_evidence: "More than one evidence type",
+  trace_failure_chain: "Failures along a call path",
 };
 
 const signalIcons = {
@@ -69,17 +70,17 @@ export function StructuralSignals({
   return (
     <InvestigationDetailSection
       id="structural-signals"
-      eyebrow="Deterministic observations"
-      title="Structural signals"
+      eyebrow="Recorded observations"
+      title="Evidence patterns"
       description={
         signals.length === 0
-          ? "No structural signals were identified."
-          : `${signals.length} structural ${signals.length === 1 ? "observation" : "observations"} in the collected evidence.`
+          ? "No evidence patterns were found."
+          : `${signals.length} ${signals.length === 1 ? "pattern" : "patterns"} in the recorded evidence.`
       }
       count={signals.length}
       Icon={Layers3}
-      actionLabel="View signals"
-      drawerDescription="Complete factual signal messages, scope, and finding references. Signals do not establish causality."
+      actionLabel="View patterns"
+      drawerDescription="All recorded pattern descriptions, scope, and linked findings. Patterns do not confirm cause."
       grouped={grouped}
       open={detailsOpen}
       onOpenChange={onDetailsOpenChange}
@@ -87,7 +88,7 @@ export function StructuralSignals({
         signals.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {signals.slice(0, 3).map((signal) => (
-              <span key={signal.id} className="rounded bg-canvas px-1.5 py-0.5 text-[0.68rem] font-semibold text-ink">
+              <span key={signal.id} className="rounded bg-canvas px-1.5 py-0.5 text-xs font-semibold text-ink">
                 {signalTypeLabels[signal.type]}
               </span>
             ))}
@@ -97,7 +98,7 @@ export function StructuralSignals({
     >
       {signals.length === 0 ? (
         <p className="px-6 py-5 text-sm text-slate">
-          No structural signals were identified.
+          No evidence patterns were found.
         </p>
       ) : (
         <ol className="space-y-4 p-4 sm:p-5">
@@ -135,27 +136,22 @@ export function StructuralSignals({
                       onClick={() => onSelectSignal(selected ? null : signal.id)}
                       className="rounded-md border border-steel bg-surface px-2.5 py-1.5 text-xs font-extrabold text-ink hover:border-slate/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                     >
-                      {selected ? "Clear emphasis" : "Emphasize findings"}
+                      {selected ? "Clear highlight" : "Highlight findings"}
                     </button>
                   </div>
 
-                  <dl className="mt-3 grid gap-2 border-t border-steel pt-3 text-xs sm:grid-cols-2">
-                    <div>
-                      <dt className="font-bold uppercase tracking-[0.1em] text-slate">Evidence group</dt>
-                      <dd className="mt-1 break-all font-mono text-ink">{signal.evidenceGroupId}</dd>
-                    </div>
-                    {signal.traceId && (
-                      <div>
-                        <dt className="font-bold uppercase tracking-[0.1em] text-slate">Trace</dt>
-                        <dd className="mt-1 break-all font-mono text-ink">{signal.traceId}</dd>
-                      </div>
-                    )}
-                  </dl>
+                  <ExactIdentifiers
+                    identifiers={[
+                      { label: "Evidence group ID", value: signal.evidenceGroupId },
+                      ...(signal.traceId ? [{ label: "Trace ID", value: signal.traceId }] : []),
+                    ]}
+                    className="mt-3 border-t border-steel pt-3"
+                  />
 
                   {signal.services && signal.services.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {signal.services.map((service) => (
-                        <span key={service} className="rounded bg-surface px-2 py-1 font-mono text-[0.68rem] font-semibold text-ink">
+                        <span key={service} className="rounded bg-surface px-2 py-1 font-mono text-xs font-semibold text-ink">
                           {service}
                         </span>
                       ))}
@@ -163,7 +159,7 @@ export function StructuralSignals({
                   )}
 
                   <div className="mt-4">
-                    <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">Referenced findings</p>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate">Linked findings</p>
                     <FindingReferenceList
                       references={references}
                       onNavigateFinding={onNavigateFinding}

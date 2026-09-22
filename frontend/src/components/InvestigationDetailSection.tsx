@@ -97,7 +97,7 @@ export function InvestigationDetailDrawer({
       >
         <header className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-4 border-b border-steel bg-surface px-5 py-4 sm:px-6">
           <div className="min-w-0">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.17em] text-slate">
+            <p className="text-xs font-bold uppercase tracking-[0.17em] text-slate">
               {eyebrow}
             </p>
             <h2
@@ -109,7 +109,7 @@ export function InvestigationDetailDrawer({
             {description && (
               <p
                 id={descriptionId}
-                className="mt-1 max-w-xl text-xs leading-5 text-slate"
+                className="mt-1 max-w-xl text-sm leading-5 text-slate"
               >
                 {description}
               </p>
@@ -201,11 +201,11 @@ export function InvestigationDetailSection({
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[0.62rem] font-bold uppercase tracking-[0.15em] text-slate">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate">
                 {eyebrow}
               </p>
               {count !== undefined && (
-                <span className="rounded bg-canvas px-1.5 py-0.5 font-mono text-[0.68rem] font-extrabold text-slate">
+                <span className="rounded bg-canvas px-1.5 py-0.5 font-mono text-xs font-extrabold text-slate">
                   {count}
                 </span>
               )}
@@ -216,7 +216,7 @@ export function InvestigationDetailSection({
             >
               {title}
             </h2>
-            <p className="mt-0.5 break-words text-xs leading-5 text-slate [overflow-wrap:anywhere]">
+            <p className="mt-0.5 break-words text-sm leading-5 text-slate [overflow-wrap:anywhere]">
               {description}
             </p>
             {preview && <div className="mt-2">{preview}</div>}

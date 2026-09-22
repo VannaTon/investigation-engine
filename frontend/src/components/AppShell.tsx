@@ -5,6 +5,7 @@ import type { FixtureSelectorOption } from "./FixtureSelector";
 import { hashTargetId } from "../lib/investigationReviewLocation";
 
 interface AppShellProps {
+  activeProduct?: "investigations" | "alert-rules" | "applications";
   showInvestigationNavigation?: boolean;
   pageTitle?: string;
   children: ReactNode;
@@ -24,6 +25,7 @@ export function investigationSectionIdFromHash(hash: string): string | null {
 }
 
 export function AppShell({
+  activeProduct = "investigations",
   children,
   investigationHref,
   currentAlertId,
@@ -76,6 +78,10 @@ export function AppShell({
       mobileNavigationButtonRef.current?.focus();
     };
   }, [mobileNavigationOpen]);
+  const productLabel = activeProduct === "alert-rules" ? "Alert Rules"
+    : activeProduct === "applications" ? "Applications" : "Investigations";
+  const skipLabel = activeProduct === "alert-rules" ? "Skip to alert rules"
+    : activeProduct === "applications" ? "Skip to applications" : "Skip to investigation";
 
   return (
     <div className="flex min-h-screen overflow-x-clip bg-canvas text-ink">
@@ -83,7 +89,7 @@ export function AppShell({
         href="#investigation-content"
         className="fixed left-3 top-3 z-[60] -translate-y-20 rounded-md bg-ink px-3 py-2 text-sm font-bold text-white focus:translate-y-0 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-white"
       >
-        Skip to investigation
+        {skipLabel}
       </a>
 
       {mobileNavigationOpen && (
@@ -97,6 +103,7 @@ export function AppShell({
       )}
 
       <AppSidebar
+        activeProduct={activeProduct}
         showInvestigationNavigation={showInvestigationNavigation}
         collapsed={sidebarCollapsed}
         mobileOpen={mobileNavigationOpen}
@@ -112,6 +119,7 @@ export function AppShell({
         inert={mobileNavigationOpen ? true : undefined}
       >
         <TopBar
+          productLabel={productLabel}
           pageTitle={pageTitle}
           fixtureOptions={fixtureOptions}
           selectedAlertId={currentAlertId}

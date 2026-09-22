@@ -41,6 +41,7 @@ const formattersModule = await load("/src/lib/formatters.ts");
 const appModule = await load("/src/App.tsx");
 const pageModule = await load("/src/pages/InvestigationPage.tsx");
 const overviewModule = await load("/src/components/InvestigationOverview.tsx");
+const alertStatusBadgeModule = await load("/src/components/AlertStatusBadge.tsx");
 const findingsModule = await load("/src/components/FindingsTimeline.tsx");
 const detailDrawerModule = await load(
   "/src/components/InvestigationDetailSection.tsx",
@@ -55,6 +56,7 @@ const evidenceStoryModule = await load("/src/components/EvidenceStory.tsx");
 const signalsModule = await load("/src/components/StructuralSignals.tsx");
 const integrityModule = await load("/src/components/IntegrityIssues.tsx");
 const candidateModule = await load("/src/components/CauseCandidateRanking.tsx");
+const supportTypesModule = await load("/src/components/SupportTypes.tsx");
 const narrativePanelModule = await load(
   "/src/components/InvestigationNarrativePanel.tsx",
 );
@@ -357,7 +359,7 @@ test("focused evidence review has a factual empty-linked-context state", () => {
 
   assert.match(
     html,
-    /No explicit linked evidence records were supplied for this finding/,
+    /No linked evidence is available for this finding/,
   );
   assert.doesNotMatch(
     html,
@@ -419,14 +421,15 @@ test("finding review expands explicit context and opens exact-span telemetry", a
 
   const text = renderedText(renderer);
   assert.match(text, /Focused evidence review/);
-  assert.match(text, /Priority #1/);
-  assert.match(text, /Support score 6/);
+  assert.match(text, /Finding priority #1/);
+  assert.match(text, /types of connections and patterns/);
+  assert.ok(renderer.root.findAllByType(supportTypesModule.SupportTypeCount).some(count => count.props.count === 6));
   assert.match(text, /6 related findings across 2 services/);
-  assert.match(text, /Same span/);
-  assert.match(text, /trace failure chain/i);
+  assert.match(text, /Same step \(span\)/);
+  assert.match(text, /Failures along a call path/);
   assert.match(text, /GET \/checkout/);
   assert.match(text, /Checkout inventory unavailable/);
-  assert.match(text, /Only backend-provided IDs and exact trace\/span matches/);
+  assert.match(text, /Links use recorded IDs; matching a step requires both trace and span IDs/);
   assert.doesNotMatch(
     text,
     /root cause is|caused by|confirmed cause|likely cause|confidence|probability/i,
@@ -434,7 +437,7 @@ test("finding review expands explicit context and opens exact-span telemetry", a
 
   const telemetryLink = renderer.root
     .findAllByType("a")
-    .find((link) => link.children.includes("Open exact-span telemetry"));
+    .find((link) => link.children.includes("Open logs for this step"));
   assert.ok(telemetryLink);
   await act(async () => {
     telemetryLink.props.onClick();
@@ -699,7 +702,7 @@ test("workspace refresh retains filtered results and timestamp on failure, retri
     assert.equal(requests.length, 2);
     await act(async () => requests[1].reject(new alertListModule.AlertListError("network")));
     assert.match(renderedText(renderer), /Unable to refresh alerts/);
-    assert.match(renderedText(renderer), /Showing previously fetched results/);
+    assert.match(renderedText(renderer), /Showing the last loaded results/);
     assert.equal(fetchedAt(), originalTimestamp);
     assert.equal(renderer.root.findByType("a").props.href, originalHref);
     assert.equal(renderer.root.findByType("input").props.value, resolved.alert.title);
@@ -804,12 +807,12 @@ test("resolution requires confirmation; cancel is inert; pending action cannot b
   await h.mount();
   try {
     await h.click("Resolve");
-    assert.match(renderedText(h.renderer), /does not verify that the service has recovered/);
+    assert.match(renderedText(h.renderer), /does not confirm that the service has recovered/);
     assert.equal(patches, 0);
     await h.click("Cancel");
     assert.equal(patches, 0);
     await h.click("Resolve");
-    const confirm = h.button("Confirm resolution").props.onClick;
+    const confirm = h.button("Resolve alert").props.onClick;
     await act(async () => { confirm(); confirm(); });
     assert.equal(patches, 1);
     assert.equal(reads, 0);
@@ -863,7 +866,7 @@ test("conflict and uncertain mutation outcomes refetch state without replaying t
       assert.equal(h.latest.alert.status, "resolved");
       assert.equal(h.button("Acknowledge"), undefined);
       assert.doesNotMatch(renderedText(h.renderer), /Change saved/);
-      assert.match(renderedText(h.renderer), failure.status === 409 ? /alert changed/ : /outcome could not be confirmed/);
+      assert.match(renderedText(h.renderer), failure.status === 409 ? /alert changed/ : /could not confirm whether the change was saved/);
     } finally { await h.close(); }
   }
 });
@@ -987,11 +990,11 @@ test("live page replaces status and investigation window after confirmed resolut
       lifecycleDataSource: { async updateStatus(id, status) { patches++; assert.equal(id, firing.alert.id); assert.equal(status, "resolved"); return next.alert; } },
     })); });
     await act(async () => renderer.root.findAllByType("button").find((b) => b.children.includes("Resolve")).props.onClick());
-    await act(async () => renderer.root.findAllByType("button").find((b) => b.children.includes("Confirm resolution")).props.onClick());
+    await act(async () => renderer.root.findAllByType("button").find((b) => b.children.includes("Resolve alert")).props.onClick());
     assert.equal(reads, 2);
     assert.equal(patches, 1);
     assert.equal(narratives, 0);
-    assert.match(renderedText(renderer), /Frozen evidence window/);
+    assert.match(renderedText(renderer), /Resolved evidence window/);
     assert.match(renderedText(renderer), /Change saved. Investigation refreshed/);
   } finally {
     if (renderer) await act(async () => renderer.unmount());
@@ -1022,10 +1025,10 @@ test("sidebar progressively reveals investigation navigation groups", async () =
   const initialText = renderedText(renderer);
   assert.match(initialText, /Investigations/);
   assert.match(initialText, /Overview/);
-  assert.match(initialText, /Candidate ranking/);
+  assert.match(initialText, /Where to start/);
   assert.match(initialText, /AI explanation/);
-  assert.doesNotMatch(initialText, /Evidence priority/);
-  assert.doesNotMatch(initialText, /Evidence groups/);
+  assert.doesNotMatch(initialText, /Finding priority/);
+  assert.doesNotMatch(initialText, /Grouped evidence/);
 
   const investigationToggle = renderer.root
     .findAllByType("button")
@@ -1033,38 +1036,189 @@ test("sidebar progressively reveals investigation navigation groups", async () =
   const evidenceToggle = renderer.root
     .findAllByType("button")
     .find((button) => button.props["aria-controls"] === "sidebar-group-evidence");
-  const deepEvidenceToggle = renderer.root
-    .findAllByType("button")
-    .find((button) => button.props["aria-controls"] === "sidebar-group-deep-evidence");
 
   assert.ok(investigationToggle);
   assert.ok(evidenceToggle);
-  assert.ok(deepEvidenceToggle);
+  assert.equal(renderer.root.findAllByType("button").filter(button => button.props["aria-controls"]?.startsWith("sidebar-group-")).length, 2);
+  assert.doesNotMatch(initialText, /Deep evidence/);
   assert.equal(investigationToggle.props["aria-expanded"], true);
   assert.equal(evidenceToggle.props["aria-expanded"], false);
-  assert.equal(deepEvidenceToggle.props["aria-expanded"], false);
 
   await act(async () => {
     evidenceToggle.props.onClick();
   });
   assert.equal(evidenceToggle.props["aria-expanded"], true);
-  assert.match(renderedText(renderer), /Evidence priority/);
-  assert.match(renderedText(renderer), /Trace path/);
+  assert.match(renderedText(renderer), /Finding priority/);
+  assert.match(renderedText(renderer), /Request path/);
+  assert.match(renderedText(renderer), /Grouped evidence/);
+  assert.match(renderedText(renderer), /Connections/);
+  assert.match(renderedText(renderer), /Metrics and logs/);
+  assert.match(renderedText(renderer), /Data checks/);
+  const evidenceChildren = renderer.root.findByProps({ id: "sidebar-group-evidence" });
+  assert.deepEqual(evidenceChildren.findAllByType("a").map(link => link.props.href), ["#evidence-priority", "#trace-path", "#findings", "#timeline", "#evidence-groups", "#relationships", "#telemetry", "#integrity"]);
+  assert.ok(evidenceChildren.findAllByType("a").every(link => /ml-3/.test(link.props.className)));
   assert.deepEqual(navigatedSections, []);
-
-  await act(async () => {
-    deepEvidenceToggle.props.onClick();
-  });
-  assert.equal(deepEvidenceToggle.props["aria-expanded"], true);
-  assert.match(renderedText(renderer), /Evidence groups/);
-  assert.match(renderedText(renderer), /Relationships/);
-  assert.match(renderedText(renderer), /Telemetry/);
-  assert.match(renderedText(renderer), /Integrity issues/);
+  await act(async () => evidenceToggle.props.onClick());
+  assert.equal(evidenceToggle.props["aria-expanded"], false);
+  assert.equal(renderer.root.findAllByProps({ id: "sidebar-group-evidence" }).length, 0);
+  await act(async () => evidenceToggle.props.onClick());
+  assert.equal(renderer.root.findByProps({ id: "sidebar-group-evidence" }).findAllByType("a").length, 8);
   assert.deepEqual(navigatedSections, []);
 
   await act(async () => {
     renderer.unmount();
   });
+});
+
+const evidenceNavigationProps = (overrides = {}) => ({
+  collapsed: false,
+  mobileOpen: false,
+  investigationHref: "/investigations/alert-id?source=live&q=checkout",
+  activeSectionId: "overview",
+  onNavigateSection() {},
+  onToggleCollapsed() {},
+  onCloseMobile() {},
+  ...overrides,
+});
+
+test("evidence navigation consolidates groups while preserving the complete ordered anchor inventory", () => {
+  const ids = ["overview", "candidate-ranking", "ai-explanation", "evidence-priority", "trace-path", "findings", "timeline", "evidence-groups", "relationships", "telemetry", "integrity"];
+  assert.deepEqual(sidebarModule.investigationSectionIds, ids);
+  assert.equal(new Set(sidebarModule.investigationSectionIds).size, ids.length);
+  assert.deepEqual(sidebarModule.investigationSectionGroups.map(group => [group.id, group.label, group.defaultExpanded]), [["investigation", "Investigation", true], ["evidence", "Evidence", false]]);
+  assert.deepEqual(sidebarModule.investigationSectionGroups[0].items.map(item => item.id), ["candidate-ranking", "ai-explanation"]);
+  assert.deepEqual(sidebarModule.investigationSectionGroups[1].items.map(item => item.id), ids.slice(3));
+  for (const id of ids) assert.equal(appShellModule.investigationSectionIdFromHash(`#${id}`), id);
+  assert.equal(appShellModule.investigationSectionIdFromHash("#deep-evidence"), null);
+});
+
+test("evidence navigation automatically reveals every evidence destination after active-section changes", async () => {
+  const navigations = [];
+  const props = evidenceNavigationProps({ onNavigateSection(id) { navigations.push(id); } });
+  let renderer;
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(sidebarModule.AppSidebar, props)); });
+    for (const item of sidebarModule.investigationSectionGroups[1].items) {
+      let toggle = renderer.root.findAllByType("button").find(button => button.props["aria-controls"] === "sidebar-group-evidence");
+      if (toggle.props["aria-expanded"]) await act(async () => toggle.props.onClick());
+      assert.equal(renderer.root.findAllByProps({ id: "sidebar-group-evidence" }).length, 0);
+      await act(async () => renderer.update(React.createElement(sidebarModule.AppSidebar, { ...props, activeSectionId: item.id })));
+      toggle = renderer.root.findAllByType("button").find(button => button.props["aria-controls"] === "sidebar-group-evidence");
+      assert.equal(toggle.props["aria-expanded"], true);
+      const links = renderer.root.findByProps({ id: "sidebar-group-evidence" }).findAllByType("a");
+      assert.equal(links.length, 8);
+      assert.deepEqual(links.filter(link => link.props["aria-current"] === "location").map(link => link.props.href), [`#${item.id}`]);
+      assert.equal(links.find(link => link.props.href === `#${item.id}`).props["aria-label"], item.label);
+    }
+    assert.deepEqual(navigations, []);
+    assert.equal(renderer.root.findAllByType("button").filter(button => button.props["aria-controls"] === "sidebar-group-deep-evidence").length, 0);
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
+test("evidence navigation opens all existing views from the collapsed sidebar without changing the active section", async () => {
+  let renderer;
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(appShellModule.AppShell, {
+      investigationHref: "/investigations/alert-id", currentAlertId: "alert-id", onSelectFixture() {},
+    }, React.createElement("div", null, "Unchanged investigation content"))); });
+    const collapse = renderer.root.findAllByType("button").find(button => button.props["aria-label"] === "Collapse sidebar");
+    await act(async () => collapse.props.onClick());
+    const open = renderer.root.findAllByType("button").find(button => button.props["aria-label"] === "Open Evidence navigation");
+    assert.ok(open);
+    assert.equal(open.props.title, "Evidence");
+    assert.equal(open.props["aria-expanded"], false);
+    await act(async () => open.props.onClick());
+    const sidebar = renderer.root.findByType(sidebarModule.AppSidebar);
+    assert.equal(sidebar.props.collapsed, false);
+    assert.equal(sidebar.props.activeSectionId, "overview");
+    assert.equal(sidebar.findByProps({ id: "sidebar-group-evidence" }).findAllByType("a").length, 8);
+    assert.match(renderedText(renderer), /Unchanged investigation content/);
+    assert.doesNotMatch(renderedText(renderer), /Deep evidence/);
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
+test("evidence navigation closes the mobile overlay and focuses the exact selected evidence landmark", async () => {
+  const previousWindow = globalThis.window;
+  const previousDocument = globalThis.document;
+  const frames = [];
+  const focused = [];
+  const body = { style: { overflow: "auto" } };
+  globalThis.window = {
+    location: { hash: "" }, addEventListener() {}, removeEventListener() {},
+    requestAnimationFrame(callback) { frames.push(callback); return frames.length; },
+  };
+  globalThis.document = { body, getElementById(id) { return { focus(options) { focused.push({ id, options }); } }; } };
+  let renderer;
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(appShellModule.AppShell, {
+      investigationHref: "/investigations/alert-id", currentAlertId: "alert-id", onSelectFixture() {},
+    }, React.createElement("section", { id: "telemetry", tabIndex: -1 }, "Exact telemetry landmark")), {
+      createNodeMock: element => ({ focus() { focused.push({ control: element.props["aria-label"] }); } }),
+    }); });
+    const open = renderer.root.findAllByType("button").find(button => button.props["aria-label"] === "Open navigation");
+    await act(async () => open.props.onClick());
+    assert.equal(body.style.overflow, "hidden");
+    assert.equal(renderer.root.findByType(sidebarModule.AppSidebar).props.mobileOpen, true);
+    const toggle = renderer.root.findAllByType("button").find(button => button.props["aria-controls"] === "sidebar-group-evidence");
+    await act(async () => toggle.props.onClick());
+    const link = renderer.root.findAllByType("a").find(item => item.props.href === "#telemetry");
+    await act(async () => link.props.onClick());
+    const sidebar = renderer.root.findByType(sidebarModule.AppSidebar);
+    assert.equal(sidebar.props.mobileOpen, false);
+    assert.equal(sidebar.props.activeSectionId, "telemetry");
+    assert.equal(body.style.overflow, "auto");
+    assert.equal(renderer.root.findAllByType("div").filter(node => node.props.inert === true).length, 0);
+    assert.equal(renderer.root.findAllByType("button").filter(button => button.props["aria-label"] === "Close navigation overlay").length, 0);
+    assert.equal(frames.length, 1);
+    frames[0]();
+    assert.deepEqual(focused.find(item => item.id === "telemetry"), { id: "telemetry", options: { preventScroll: true } });
+    assert.ok(focused.some(item => item.control === "Open navigation"));
+    assert.equal(link.props["aria-current"], "location");
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+    if (previousWindow === undefined) delete globalThis.window; else globalThis.window = previousWindow;
+    if (previousDocument === undefined) delete globalThis.document; else globalThis.document = previousDocument;
+  }
+});
+
+test("evidence navigation honors existing exact finding log and advanced hashes without rewriting route state", async () => {
+  const previousWindow = globalThis.window;
+  const listeners = new Map();
+  const location = { hash: "#finding-trace-checkout", pathname: "/investigations/alert-id", search: "?source=live&q=checkout" };
+  globalThis.window = {
+    location,
+    addEventListener(type, callback) { listeners.set(type, callback); },
+    removeEventListener(type, callback) { if (listeners.get(type) === callback) listeners.delete(type); },
+  };
+  let renderer;
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(appShellModule.AppShell, {
+      investigationHref: "/investigations/alert-id", currentAlertId: "alert-id", onSelectFixture() {},
+    }, React.createElement("div", null, "Investigation context"))); });
+    assert.equal(renderer.root.findByType(sidebarModule.AppSidebar).props.activeSectionId, "findings");
+    for (const [hash, section] of [["#investigation-log-exact-demo-checkout-0", "telemetry"], ["#relationships", "relationships"], ["#evidence%2Dgroups", "evidence-groups"], ["#integrity", "integrity"]]) {
+      const toggle = renderer.root.findAllByType("button").find(button => button.props["aria-controls"] === "sidebar-group-evidence");
+      assert.equal(toggle.props["aria-expanded"], true);
+      await act(async () => toggle.props.onClick());
+      location.hash = hash;
+      await act(async () => listeners.get("hashchange")());
+      const sidebar = renderer.root.findByType(sidebarModule.AppSidebar);
+      assert.equal(sidebar.props.activeSectionId, section);
+      const links = sidebar.findByProps({ id: "sidebar-group-evidence" }).findAllByType("a");
+      assert.equal(links.find(link => link.props.href === `#${section}`).props["aria-current"], "location");
+      assert.equal(location.hash, hash);
+      assert.equal(location.pathname, "/investigations/alert-id");
+      assert.equal(location.search, "?source=live&q=checkout");
+    }
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+    assert.equal(listeners.size, 0);
+    if (previousWindow === undefined) delete globalThis.window; else globalThis.window = previousWindow;
+  }
 });
 
 test("section hash parsing maps stable review targets to their parent navigation section", () => {
@@ -1115,14 +1269,14 @@ test("mobile navigation is unfocusable while closed, reveals active groups, and 
   assert.match(sidebar.props.className, /invisible -translate-x-full/);
   assert.match(sidebar.props.className, /lg:visible lg:translate-x-0/);
 
-  const deepEvidenceToggle = renderer.root
+  const evidenceToggle = renderer.root
     .findAllByType("button")
     .find(
       (button) =>
-        button.props["aria-controls"] === "sidebar-group-deep-evidence",
+        button.props["aria-controls"] === "sidebar-group-evidence",
     );
-  assert.ok(deepEvidenceToggle);
-  assert.equal(deepEvidenceToggle.props["aria-expanded"], true);
+  assert.ok(evidenceToggle);
+  assert.equal(evidenceToggle.props["aria-expanded"], true);
   const activeLink = renderer.root
     .findAllByType("a")
     .find((link) => link.props.href === "#relationships");
@@ -1235,20 +1389,20 @@ test("fixture scenarios live in a grouped development control, not primary tabs"
   });
 
   assert.match(selectorHtml, /<details/);
-  assert.match(selectorHtml, /Development fixtures/);
-  assert.match(selectorHtml, /Lifecycle/);
-  assert.match(selectorHtml, /Content \/ shape/);
-  assert.match(selectorHtml, /Integrity/);
-  assert.match(selectorHtml, /Ranking/);
+  assert.match(selectorHtml, /Example investigations/);
+  assert.match(selectorHtml, /Alert status/);
+  assert.match(selectorHtml, /Evidence examples/);
+  assert.match(selectorHtml, /Data checks/);
+  assert.match(selectorHtml, /Ranking ties/);
   for (const label of [
     "Resolved",
     "Firing",
-    "Empty",
-    "Deep trace",
-    "Groups",
-    "Mismatch",
-    "Missing refs",
-    "Candidate tie",
+    "No evidence",
+    "Long request path",
+    "Grouped evidence",
+    "Service mismatch",
+    "Missing links",
+    "Tied candidates",
   ]) {
     assert.match(selectorHtml, new RegExp(`>${label}<`));
   }
@@ -1277,7 +1431,7 @@ test("fixture selector preserves existing fixture IDs and route behavior", async
     .find((button) =>
       button
         .findAllByType("span")
-        .some((span) => span.children.includes("Mismatch")),
+        .some((span) => span.children.includes("Service mismatch")),
     );
   assert.ok(mismatchButton);
   await act(async () => {
@@ -1315,7 +1469,7 @@ test("app shell truly collapses and restores the sidebar without hiding content"
   const expandedText = renderedText(renderer);
   assert.match(expandedText, /lg:w-64/);
   assert.match(expandedText, /Main investigation content/);
-  assert.match(expandedText, /Candidate ranking/);
+  assert.match(expandedText, /Where to start/);
 
   const collapse = renderer.root
     .findAllByType("button")
@@ -1336,7 +1490,6 @@ test("app shell truly collapses and restores the sidebar without hiding content"
     "Overview",
     "Investigation",
     "Evidence",
-    "Deep evidence",
   ]) {
     const control = renderer.root
       .findAll((node) => node.type === "a" || node.type === "button")
@@ -1368,7 +1521,7 @@ test("app shell truly collapses and restores the sidebar without hiding content"
 
   const restoredText = renderedText(renderer);
   assert.match(restoredText, /lg:w-64/);
-  assert.match(restoredText, /Candidate ranking/);
+  assert.match(restoredText, /Where to start/);
   assert.match(restoredText, /Main investigation content/);
 
   await act(async () => {
@@ -1485,13 +1638,8 @@ test("section navigation preserves stable targets through collapsed groups", asy
   });
   assert.equal(traceLink.props["aria-current"], "location");
 
-  const deepToggle = renderer.root
-    .findAllByType("button")
-    .find((button) => button.props["aria-controls"] === "sidebar-group-deep-evidence");
-  assert.ok(deepToggle);
-  await act(async () => {
-    deepToggle.props.onClick();
-  });
+  assert.equal(evidenceToggle.props["aria-expanded"], true);
+  assert.equal(renderer.root.findByProps({ id: "sidebar-group-evidence" }).findAllByType("a").length, 8);
 
   const relationshipsLink = renderer.root
     .findAllByType("a")
@@ -1569,6 +1717,151 @@ test("ready investigation renders every sidebar target with ranking before AI", 
     }
   }
 });
+function startingPointHostNodes(renderer) {
+  const nodes = [];
+  function visit(value) {
+    if (Array.isArray(value)) return value.forEach(visit);
+    if (value && typeof value === "object") {
+      nodes.push(value);
+      value.children?.forEach(visit);
+    }
+  }
+  visit(renderer.toJSON());
+  return nodes;
+}
+
+async function withStartingPointPage(investigation, verify) {
+  const previousDocument = globalThis.document;
+  const previousHTMLElement = globalThis.HTMLElement;
+  const documentEnvironment = installReviewDocumentEnvironment();
+  globalThis.document = documentEnvironment.document;
+  globalThis.HTMLElement = documentEnvironment.HTMLElement;
+  const before = structuredClone(investigation);
+  let reads = 0;
+  let narratives = 0;
+  let lifecycleWrites = 0;
+  let renderer;
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(pageModule.InvestigationPage, {
+      alertId: investigation.alert.id,
+      dataSource: { async getInvestigation() { reads++; return investigation; } },
+      narrativeDataSource: { async generateNarrative() { narratives++; throw new Error("Not requested"); } },
+      lifecycleDataSource: { async updateStatus() { lifecycleWrites++; throw new Error("Not requested"); } },
+    }), { createNodeMock: documentEnvironment.createNodeMock }); });
+    await verify(renderer);
+    assert.equal(reads, 1);
+    assert.equal(narratives, 0);
+    assert.equal(lifecycleWrites, 0);
+    assert.deepEqual(investigation, before);
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+    if (previousDocument === undefined) delete globalThis.document; else globalThis.document = previousDocument;
+    if (previousHTMLElement === undefined) delete globalThis.HTMLElement; else globalThis.HTMLElement = previousHTMLElement;
+  }
+}
+
+test("starting point slot follows incident identity and precedes snapshot context without replacing it", () => {
+  const html = markup(overviewModule.InvestigationOverview, {
+    investigation: unifiedIncident,
+    children: React.createElement("section", { id: "starting-point-slot" }, "Existing ranking"),
+  });
+  assert.ok(html.indexOf('id="alert-title"') < html.indexOf('id="starting-point-slot"'));
+  assert.ok(html.indexOf('id="starting-point-slot"') < html.indexOf('id="window-heading"'));
+  assert.ok(html.indexOf('id="window-heading"') < html.indexOf('aria-label="Investigation summary"'));
+  const standalone = markup(overviewModule.InvestigationOverview, { investigation: unifiedIncident });
+  assert.match(standalone, /Evidence snapshot/);
+  assert.match(standalone, /Investigation summary/);
+  assert.doesNotMatch(standalone, /starting-point-slot|candidate-ranking/);
+});
+
+test("starting point ready page renders the existing leader before the window and totals with one ranking", async () => {
+  await withStartingPointPage(unifiedIncident, renderer => {
+    const nodes = startingPointHostNodes(renderer);
+    const title = nodes.findIndex(node => node.props.id === "alert-title");
+    const ranking = nodes.findIndex(node => node.props.id === "candidate-ranking");
+    const windowHeading = nodes.findIndex(node => node.props.id === "window-heading");
+    const totals = nodes.findIndex(node => node.props["aria-label"] === "Investigation summary");
+    const rows = nodes.filter(node => node.type === "article" && node.props["aria-label"]?.startsWith("Candidate rank #"));
+    assert.ok(title >= 0 && title < ranking && ranking < windowHeading && windowHeading < totals);
+    assert.deepEqual(rows.map(row => row.props["aria-label"]), unifiedIncident.causeCandidateRanks.map(rank => `Candidate rank #${rank.rank}, ${rank.service}${rank.tied ? ", tied candidate" : ""}`));
+    assert.ok(nodes.indexOf(rows[0]) < windowHeading);
+    assert.match(renderedText(renderer), /Best place to start/);
+    assert.equal(nodes.filter(node => node.props.id === "candidate-ranking").length, 1);
+    assert.equal(renderer.root.findAllByType(candidateModule.CauseCandidateRanking).length, 1);
+    const candidate = renderer.root.findByType(overviewModule.InvestigationOverview).findByType(candidateModule.CauseCandidateRanking);
+    assert.equal(candidate.props.ranks, unifiedIncident.causeCandidateRanks);
+    assert.equal(candidate.props.facts, unifiedIncident.causeCandidateFacts);
+    assert.equal(candidate.props.candidates, unifiedIncident.causeCandidates);
+    assert.equal(renderer.root.findAllByType(detailDrawerModule.InvestigationDetailDrawer).filter(drawer => drawer.props.id === "candidate-detail-drawer").length, 1);
+  });
+});
+
+test("starting point ties keep both equal-rank candidates ahead of the window without a chosen winner", async () => {
+  await withStartingPointPage(candidateTie, renderer => {
+    const nodes = startingPointHostNodes(renderer);
+    const windowHeading = nodes.findIndex(node => node.props.id === "window-heading");
+    const rows = nodes.filter(node => node.type === "article" && node.props["aria-label"]?.startsWith("Candidate rank #"));
+    assert.equal(rows.length, 2);
+    assert.ok(rows.every(row => row.props["aria-label"].startsWith("Candidate rank #1,") && nodes.indexOf(row) < windowHeading));
+    const text = renderedText(renderer);
+    assert.match(text, /Tied starting points/);
+    assert.equal((text.match(/Why this starting point is tied/g) ?? []).length, 2);
+    assert.doesNotMatch(text, /Best place to start/);
+    assert.ok(!rows.some(row => row.props["aria-label"].startsWith("Candidate rank #2,")));
+  });
+});
+
+test("starting point empty page explains absence before the window instead of inventing a candidate", async () => {
+  await withStartingPointPage(empty, renderer => {
+    const text = renderedText(renderer);
+    assert.match(text, /No starting points were ranked for this investigation/);
+    assert.ok(text.indexOf("No starting points were ranked") < text.indexOf('"id":"window-heading"'));
+    assert.doesNotMatch(text, /Best place to start|Tied starting points/);
+    assert.equal(startingPointHostNodes(renderer).filter(node => node.type === "article" && node.props["aria-label"]?.startsWith("Candidate rank #")).length, 0);
+    assert.equal(renderer.root.findByType(candidateModule.CauseCandidateRanking).props.ranks.length, 0);
+  });
+});
+
+test("starting point missing joined facts keeps the supplied ranking and honest unavailable details", async () => {
+  const missing = { ...unifiedIncident, causeCandidateFacts: [], causeCandidates: [] };
+  await withStartingPointPage(missing, async renderer => {
+    const ranking = renderer.root.findByType(candidateModule.CauseCandidateRanking);
+    assert.equal(ranking.props.ranks, unifiedIncident.causeCandidateRanks);
+    const nodes = startingPointHostNodes(renderer);
+    const windowHeading = nodes.findIndex(node => node.props.id === "window-heading");
+    const first = nodes.find(node => node.type === "article" && node.props["aria-label"] === "Candidate rank #1, demo-checkout");
+    assert.ok(first && nodes.indexOf(first) < windowHeading);
+    assert.match(renderedText(renderer), /Severity unavailable/);
+    const open = ranking.findAllByType("button").find(button => button.props["aria-controls"] === "candidate-detail-drawer");
+    await act(async () => open.props.onClick());
+    assert.match(renderedText(renderer), /Detailed facts are missing for this candidate/);
+    assert.match(renderedText(renderer), /Linked evidence is missing for this candidate/);
+    assert.equal(renderer.root.findAllByType("button").filter(button => button.children.includes("Show candidate findings")).length, 0);
+  });
+});
+
+test("starting point moved drawer retains exact finding and trace links and opens existing findings", async () => {
+  await withStartingPointPage(unifiedIncident, async renderer => {
+    const candidate = unifiedIncident.causeCandidates.find(item => item.id === unifiedIncident.causeCandidateRanks[0].candidateId);
+    const ranking = renderer.root.findByType(candidateModule.CauseCandidateRanking);
+    const open = ranking.findAllByType("button").find(button => button.props["aria-controls"] === "candidate-detail-drawer");
+    await act(async () => open.props.onClick());
+    const findingHref = `#${correlationsModule.findingDomId(candidate.findingIds[0])}`;
+    const traceHref = `#${targetsModule.traceDomId(candidate.traceIds[0])}`;
+    const findingLink = ranking.findAllByType("a").find(link => link.props.href === findingHref);
+    assert.ok(findingLink);
+    assert.ok(ranking.findAllByType("a").some(link => link.props.href === traceHref));
+    await act(async () => findingLink.props.onClick());
+    const findings = renderer.root.findByType(findingsModule.FindingsTimeline);
+    assert.equal(findings.props.openSection, "findings");
+    assert.deepEqual([...findings.props.highlightedFindingIds], candidate.findingIds);
+    assert.equal(findings.props.highlightedFindingLabel, "Candidate finding");
+    assert.ok(startingPointHostNodes(renderer).some(node => node.props.id === findingHref.slice(1)));
+    assert.equal(renderer.root.findAllByType(detailDrawerModule.InvestigationDetailDrawer).filter(drawer => drawer.props.id === "candidate-detail-drawer").length, 1);
+    assert.equal(startingPointHostNodes(renderer).filter(node => node.props.id === "candidate-detail-drawer").length, 0);
+  });
+});
+
 test("deeper investigation sections are compact by default and reveal complete drawer content", async () => {
   let renderer;
 
@@ -1615,7 +1908,7 @@ test("deeper investigation sections are compact by default and reveal complete d
     ["evidence-groups", resolved.evidenceGroups[0].message],
     ["relationships", resolved.correlations[0].message],
     ["telemetry", resolved.metrics[0].name],
-    ["integrity", "Telemetry references verified"],
+    ["integrity", "No missing or inconsistent trace or span links were reported"],
   ];
 
   for (const [sectionId, expectedText] of sections) {
@@ -1663,7 +1956,7 @@ test("actual integrity issues stay prominent and open complete diagnostics on de
   });
 
   const initialText = renderedText(renderer);
-  assert.match(initialText, /Service and span mismatch/);
+  assert.match(initialText, /Service and step mismatch/);
   assert.ok(initialText.includes(integrityMismatch.integrityIssues[0].message));
 
   const button = renderer.root
@@ -1682,7 +1975,7 @@ test("actual integrity issues stay prominent and open complete diagnostics on de
     .find((item) => item.props.id === "integrity-drawer");
   assert.ok(drawer);
   assert.equal(drawer.props.role, "dialog");
-  assert.match(renderedText(renderer), /do not invalidate the incident/);
+  assert.match(renderedText(renderer), /do not mean the incident is invalid/);
 
   await act(async () => {
     renderer.unmount();
@@ -1737,10 +2030,225 @@ test("resolved and firing alert status presentations remain distinct", () => {
     investigation: firing,
   });
 
-  assert.match(resolvedHtml, />resolved</);
-  assert.match(resolvedHtml, /Frozen evidence window/);
-  assert.match(firingHtml, />firing</);
-  assert.match(firingHtml, /Live evidence window/);
+  assert.match(resolvedHtml, />Resolved</);
+  assert.match(resolvedHtml, /Resolved evidence window/);
+  assert.match(firingHtml, />Firing</);
+  assert.match(firingHtml, /Evidence snapshot/);
+});
+
+test("list and detail reuse one title-case alert status presentation without changing stored values", async () => {
+  const cases = [
+    ["firing", "Firing"],
+    ["acknowledged", "Acknowledged"],
+    ["resolved", "Resolved"],
+  ];
+  const alerts = cases.map(([status], index) => ({
+    ...firing.alert,
+    id: "status-presentation-" + index,
+    status,
+    resolvedAt: status === "resolved" ? firing.alert.updatedAt : undefined,
+  }));
+  const before = structuredClone(alerts);
+
+  for (const [status, label] of cases) {
+    const badgeHtml = markup(alertStatusBadgeModule.AlertStatusBadge, { status });
+    assert.match(badgeHtml, new RegExp('data-alert-status="' + status + '"'));
+    assert.match(badgeHtml, new RegExp(">" + label + "</span>"));
+    assert.equal((badgeHtml.match(/<svg/g) ?? []).length, 1);
+
+    const alert = alerts.find((item) => item.status === status);
+    const investigation = { ...firing, alert };
+    const detailHtml = markup(overviewModule.InvestigationOverview, { investigation });
+    assert.ok(detailHtml.includes(badgeHtml));
+  }
+
+  const previousDocument = globalThis.document;
+  globalThis.document = { title: "" };
+  let renderer;
+  try {
+    await act(async () => {
+      renderer = TestRenderer.create(React.createElement(workspaceModule.InvestigationsPage, {
+        dataSource: { async getAlerts() { return alerts; } },
+      }));
+    });
+    const badges = renderer.root.findAllByType(alertStatusBadgeModule.AlertStatusBadge);
+    assert.deepEqual(badges.map((badge) => badge.props.status), cases.map(([status]) => status));
+    assert.deepEqual(
+      badges.map((badge) => badge.findByProps({ "data-alert-status": badge.props.status }).children.at(-1)),
+      cases.map(([, label]) => label),
+    );
+    assert.deepEqual(alerts, before);
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  }
+});
+
+test("demo incident header makes the readable title primary and full identifiers secondary", () => {
+  const before = structuredClone(unifiedIncident);
+  const html = markup(overviewModule.InvestigationOverview, { investigation: unifiedIncident });
+  const title = html.match(/<h1\b[^>]*>(.*?)<\/h1>/s)?.[1];
+  assert.equal(title, "Checkout failures detected");
+  assert.ok(!title.includes(unifiedIncident.alert.id));
+  assert.ok(!title.includes(unifiedIncident.alert.ruleId));
+  assert.match(html, /<details\b[^>]*>.*?<summary\b[^>]*>Alert IDs<\/summary>/s);
+  assert.doesNotMatch(html, /<details\b[^>]*\bopen(?:=|\s|>)/);
+  assert.match(html, />Alert ID</);
+  assert.match(html, />Rule ID</);
+  assert.ok(html.includes(`>${unifiedIncident.alert.id}</dd>`));
+  assert.ok(html.includes(`>${unifiedIncident.alert.ruleId}</dd>`));
+  assert.deepEqual(unifiedIncident, before);
+});
+
+test("incident display never silently rewrites user-supplied titles or trigger messages", () => {
+  const custom = {
+    ...firing,
+    alert: { ...firing.alert, title: "Phase 7 customer migration 1fd77d4a-2e33-4a09-aae3-74eb81e743b4", message: "custom_count_abc >= 1, no rate derived" },
+  };
+  const html = markup(overviewModule.InvestigationOverview, { investigation: custom });
+  assert.ok(html.includes(`>${custom.alert.title}</h1>`));
+  assert.ok(html.includes(custom.alert.message.replace(">", "&gt;")));
+});
+
+test("demo fixture incident and lifecycle event use the same accurate human-readable title", () => {
+  assert.equal(unifiedIncident.alert.title, "Checkout failures detected");
+  const event = unifiedIncident.timeline.find(item => item.type === "alert_fired");
+  assert.equal(event.data.title, unifiedIncident.alert.title);
+  assert.equal(event.data.alertId, unifiedIncident.alert.id);
+  assert.ok(unifiedIncident.metrics.every(metric => metric.type === "counter" && metric.value === 1 && metric.unit === "{failure}"));
+  assert.doesNotMatch(unifiedIncident.alert.title, /Phase|OTLP|Unified|rate|%|[0-9a-f]{8}-[0-9a-f-]{27}/i);
+});
+
+test("demo incident list retains distinct full IDs and exact live links for matching readable titles", async () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { title: "" };
+  const alerts = [unifiedIncident.alert, { ...unifiedIncident.alert, id: "second-alert-exact-id", ruleId: "second-rule-exact-id" }];
+  const before = structuredClone(alerts);
+  const view = { query: "Checkout failures", status: "firing" };
+  let reads = 0;
+  let renderer;
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(workspaceModule.InvestigationsPage, {
+      dataSource: { async getAlerts() { reads++; return alerts; } }, initialView: view,
+    })); });
+    assert.equal(reads, 1);
+    assert.deepEqual(renderer.root.findAllByType("h2").map(node => node.children.join("")), ["Checkout failures detected", "Checkout failures detected"]);
+    assert.equal(renderer.root.findAllByType("details").length, 2);
+    assert.ok(renderer.root.findAllByType("details").every(node => !node.props.open));
+    const links = renderer.root.findAllByType("a");
+    assert.deepEqual(new Set(links.map(link => link.props.href)), new Set(alerts.map(alert => alertSelectionModule.liveInvestigationHref(alert.id, view))));
+    for (const alert of alerts) {
+      const values = renderer.root.findAllByType("dd").map(node => node.children.join(""));
+      assert.ok(values.includes(alert.id));
+      assert.ok(values.includes(alert.ruleId));
+      assert.ok(links.some(link => link.props["aria-label"].includes(`(${alert.id})`)));
+    }
+    assert.deepEqual(alerts, before);
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+    if (previousDocument === undefined) delete globalThis.document; else globalThis.document = previousDocument;
+  }
+});
+
+test("evidence window does not infer active collection or resolution from an old alert", () => {
+  const old = {
+    ...firing,
+    alert: { ...firing.alert, startedAt: "2026-09-10T09:00:00.000Z", updatedAt: "2026-09-10T09:01:00.000Z" },
+    window: { from: "2026-09-10T08:45:00.000Z", to: "2026-09-10T09:05:00.000Z" },
+  };
+  const html = markup(overviewModule.InvestigationOverview, { investigation: old });
+  assert.match(html, />Firing</);
+  assert.match(html, />Unresolved</);
+  assert.match(html, /Evidence snapshot/);
+  assert.match(html, /does not close just because time has passed/);
+  assert.match(html, /this view does not show whether new data is arriving/);
+  assert.doesNotMatch(html, /COLLECTING|Live evidence window|FINALIZED|Frozen evidence window/);
+  assert.match(html, /dateTime="2026-09-10T08:45:00.000Z"/);
+  assert.match(html, /dateTime="2026-09-10T09:05:00.000Z"/);
+  assert.equal(old.alert.status, "firing");
+});
+
+test("evidence window never invents live collection for firing or acknowledged snapshots", () => {
+  for (const status of ["firing", "acknowledged"]) {
+    const investigation = { ...firing, alert: { ...firing.alert, status } };
+    const html = markup(overviewModule.InvestigationOverview, { investigation });
+    assert.ok(html.includes(">" + (status === "firing" ? "Firing" : "Acknowledged") + "<"));
+    assert.match(html, />Unresolved</);
+    assert.match(html, /Evidence snapshot/);
+    assert.doesNotMatch(html, /COLLECTING|Live evidence window|live-ping|live-window/);
+  }
+});
+
+test("evidence window displays resolved state and the exact returned range without claiming frozen records", () => {
+  const html = markup(overviewModule.InvestigationOverview, { investigation: resolved });
+  assert.match(html, /Resolved evidence window/);
+  assert.match(html, /This alert is resolved/);
+  assert.ok(html.includes(`dateTime="${resolved.window.from}"`));
+  assert.ok(html.includes(`dateTime="${resolved.window.to}"`));
+  assert.doesNotMatch(html, /COLLECTING|Live evidence window|Frozen evidence window|Unresolved/);
+});
+
+test("evidence window separates the last alert update from evidence time bounds", () => {
+  const investigation = {
+    ...firing,
+    alert: { ...firing.alert, status: "acknowledged", updatedAt: "2026-09-10T09:01:00.000Z" },
+    window: { from: "2026-09-10T08:45:00.000Z", to: "2026-09-13T10:00:00.000Z" },
+  };
+  const html = markup(overviewModule.InvestigationOverview, { investigation });
+  assert.match(html, /Last alert update/);
+  assert.ok(html.includes(formattersModule.formatDateTime(investigation.alert.updatedAt)));
+  assert.ok(html.includes(`dateTime="${investigation.window.to}"`));
+  assert.match(html, /Evidence from/);
+  assert.match(html, /Evidence through/);
+});
+
+test("evidence window has accessible snapshot context and no fabricated progress visualization", () => {
+  for (const investigation of [firing, resolved]) {
+    const html = markup(overviewModule.InvestigationOverview, { investigation });
+    assert.match(html, /aria-labelledby="window-heading" aria-describedby="window-description"/);
+    assert.match(html, /id="window-description"/);
+    assert.match(html, /Evidence from/);
+    assert.match(html, /Evidence through/);
+    assert.doesNotMatch(html, /w-4\/5|live-window|live-ping|role="progressbar"/);
+  }
+});
+
+test("evidence window refresh reloads authoritative status and bounds without lifecycle or AI writes", async () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { title: "" };
+  const next = { ...resolved, alert: { ...resolved.alert, id: firing.alert.id, ruleId: firing.alert.ruleId } };
+  let reads = 0;
+  let writes = 0;
+  let narratives = 0;
+  const source = new httpModule.HttpInvestigationDataSource("http://example.invalid", async (url, init) => {
+    reads++;
+    assert.ok(url.endsWith(`/v1/alerts/${firing.alert.id}/investigation`));
+    assert.equal(init.method, "GET");
+    return new Response(JSON.stringify(reads === 1 ? firing : next), { status: 200, headers: { "content-type": "application/json" } });
+  });
+  const props = {
+    alertId: firing.alert.id,
+    dataSource: source,
+    narrativeDataSource: { async generateNarrative() { narratives++; throw new Error("Not requested"); } },
+    lifecycleDataSource: { async updateStatus() { writes++; throw new Error("Not requested"); } },
+  };
+  let renderer;
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(pageModule.InvestigationPage, { ...props, key: "before-refresh" })); });
+    assert.match(renderedText(renderer), /Evidence snapshot/);
+    assert.match(renderedText(renderer), /Unresolved/);
+    await act(async () => { renderer.update(React.createElement(pageModule.InvestigationPage, { ...props, key: "after-refresh" })); });
+    assert.equal(reads, 2);
+    assert.equal(writes, 0);
+    assert.equal(narratives, 0);
+    assert.match(renderedText(renderer), /Resolved evidence window/);
+    assert.doesNotMatch(renderedText(renderer), /Unresolved|COLLECTING/);
+    assert.deepEqual(renderer.root.findByType(overviewModule.InvestigationOverview).findAllByType("time").map(node => node.props.dateTime), [next.window.from, next.window.to]);
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+    if (previousDocument === undefined) delete globalThis.document; else globalThis.document = previousDocument;
+  }
 });
 
 test("overview and timeline preserve readable width on narrow screens", () => {
@@ -1775,9 +2283,9 @@ test("recursive trace rendering includes deep descendants and accessible control
   assert.match(html, /postgres-primary/);
   assert.match(html, /depth 7/);
   assert.match(html, /role="region"/);
-  assert.match(html, /aria-label="Scrollable distributed trace hierarchy"/);
+  assert.match(html, /aria-label="Scrollable request call path"/);
   assert.match(html, /aria-expanded="true"/);
-  assert.match(html, /Collapse gateway-service POST \/checkout span/);
+  assert.match(html, /Collapse gateway-service POST \/checkout step/);
 });
 
 test("exact-span log lookup requires both identifiers and preserves duplicates", () => {
@@ -1847,7 +2355,7 @@ test("trace tree shows exact log context only on the matching checkout leaf", ()
     0,
   );
 
-  assert.equal((html.match(/Exact-span logs/g) ?? []).length, 1);
+  assert.equal((html.match(/Logs for this step/g) ?? []).length, 1);
   assert.equal((html.match(/data-exact-span-log-count="1"/g) ?? []).length, 1);
   assert.equal((html.match(/data-exact-span-log-count="0"/g) ?? []).length, 2);
   assert.match(html, /Checkout inventory unavailable/);
@@ -1922,8 +2430,8 @@ test("telemetry drawer emphasizes every log matching the selected exact span", (
     },
   });
 
-  assert.match(html, /2 logs match the selected trace and span/);
-  assert.equal((html.match(/Selected span log/g) ?? []).length, 2);
+  assert.match(html, /2 logs match the selected request path and step/);
+  assert.equal((html.match(/Log for selected step/g) ?? []).length, 2);
   assert.match(html, /Second exact checkout error/);
   assert.match(html, /Unrelated checkout error/);
 });
@@ -1941,7 +2449,7 @@ test("logs without an exact trace and span match do not decorate trace nodes", (
     onReviewExactSpanLogs() {},
   });
 
-  assert.doesNotMatch(html, /Exact-span logs|Review linked logs/);
+  assert.doesNotMatch(html, /Logs for this step|Review linked logs/);
   assert.equal((html.match(/data-exact-span-log-count="0"/g) ?? []).length, 3);
 });
 
@@ -1957,8 +2465,8 @@ test("Evidence Groups handles frozen empty arrays", () => {
 
   assert.deepEqual(firing.evidenceGroups, []);
   assert.deepEqual(empty.evidenceGroups, []);
-  assert.match(absentHtml, /No related evidence groups were identified/);
-  assert.match(emptyHtml, /No related evidence groups were identified/);
+  assert.match(absentHtml, /No connected evidence groups were found/);
+  assert.match(emptyHtml, /No connected evidence groups were found/);
 });
 
 test("Evidence Groups renders one real group and multiple separate groups", () => {
@@ -1973,8 +2481,8 @@ test("Evidence Groups renders one real group and multiple separate groups", () =
 
   assert.equal(resolved.evidenceGroups.length, 1);
   assert.match(oneHtml, /5 related findings across 3 services/);
-  assert.match(oneHtml, /Same span/);
-  assert.match(oneHtml, /Same trace/);
+  assert.match(oneHtml, /Same step \(span\)/);
+  assert.match(oneHtml, /Same request path \(trace\)/);
   assert.match(oneHtml, /Same service and time window/);
   assert.equal(multipleGroups.evidenceGroups.length, 2);
   assert.deepEqual(resolved.integrityIssues, []);
@@ -1987,7 +2495,7 @@ test("Evidence Groups renders one real group and multiple separate groups", () =
   );
   assert.match(multipleHtml, /3 related findings across 2 services/);
   assert.match(multipleHtml, /2 related findings across 2 services/);
-  assert.match(multipleHtml, /No trace references/);
+  assert.match(multipleHtml, /No linked traces/);
   assert.doesNotMatch(
     `${oneHtml}${multipleHtml}`,
     /root cause|diagnosis|blamed service|causal chain|confidence score/i,
@@ -2040,9 +2548,9 @@ test("Evidence Groups fails gracefully for unknown finding and correlation refer
     detailsOpen: true,
   });
 
-  assert.match(html, /Finding reference is not present in this response/);
-  assert.match(html, /Relationship reference unavailable/);
-  assert.match(html, /No trace references/);
+  assert.match(html, /Linked finding unavailable in this investigation/);
+  assert.match(html, /Linked connection unavailable/);
+  assert.match(html, /No linked traces/);
 });
 
 test("Evidence Group selection is accessible and narrow layout stays single-column by default", () => {
@@ -2060,7 +2568,7 @@ test("Evidence Group selection is accessible and narrow layout stays single-colu
   });
 
   assert.match(html, /aria-pressed="true"/);
-  assert.match(html, /Clear emphasis/);
+  assert.match(html, /Clear highlight/);
   assert.match(html, /space-y-4 p-4 sm:p-5/);
   assert.doesNotMatch(html, /xl:grid-cols-2/);
   assert.match(html, /break-all/);
@@ -2070,8 +2578,8 @@ test("correlation section handles frozen empty arrays", () => {
   const absentHtml = markup(relatedModule.RelatedEvidence, relatedProps(firing));
   const emptyHtml = markup(relatedModule.RelatedEvidence, relatedProps(empty));
 
-  assert.match(absentHtml, /No factual evidence relationships were identified/);
-  assert.match(emptyHtml, /No factual evidence relationships were identified/);
+  assert.match(absentHtml, /No recorded connections were found/);
+  assert.match(emptyHtml, /No recorded connections were found/);
 });
 
 test("correlation section renders one and several factual relationship types", () => {
@@ -2084,8 +2592,8 @@ test("correlation section renders one and several factual relationship types", (
     { ...relatedProps(deepTrace), detailsOpen: true },
   );
 
-  assert.match(severalHtml, /Same span/);
-  assert.match(severalHtml, /Same trace/);
+  assert.match(severalHtml, /Same step \(span\)/);
+  assert.match(severalHtml, /Same request path \(trace\)/);
   assert.match(severalHtml, /Same service and time window/);
   assert.doesNotMatch(severalHtml, /root cause|culprit|caused by/i);
   assert.match(oneHtml, /6 connected findings/);
@@ -2128,7 +2636,7 @@ test("selected correlation exposes keyboard state and visibly identifies linked 
   );
 
   assert.match(relatedHtml, /aria-pressed="true"/);
-  assert.match(relatedHtml, /Clear emphasis/);
+  assert.match(relatedHtml, /Clear highlight/);
   assert.match(relatedHtml, new RegExp(`href="#${firstFindingId}"`));
   assert.match(findingsHtml, /Connected finding/);
   assert.match(findingsHtml, new RegExp(`id="${firstFindingId}"`));
@@ -2229,7 +2737,7 @@ test("investigation retry starts a new request and recovers from network failure
       );
     });
     assert.equal(calls.length, 1);
-    assert.match(renderedText(renderer), /The backend could not be reached/);
+    assert.match(renderedText(renderer), /We could not connect to the server/);
     const retryButton = renderer.root.findAllByType("button").find(
       (button) => button.children.includes("Try again"),
     );
@@ -2244,7 +2752,7 @@ test("investigation retry starts a new request and recovers from network failure
     assert.notEqual(calls[1].init.signal, calls[0].init.signal);
     assert.equal(calls[1].init.signal.aborted, false);
     assert.match(renderedText(renderer), /Loading investigation/);
-    assert.doesNotMatch(renderedText(renderer), /The backend could not be reached/);
+    assert.doesNotMatch(renderedText(renderer), /We could not connect to the server/);
 
     await act(async () => {
       retryResponse.resolve(new Response(JSON.stringify(resolved), {
@@ -2253,8 +2761,8 @@ test("investigation retry starts a new request and recovers from network failure
       }));
     });
     assert.equal(calls.length, 2);
-    assert.match(renderedText(renderer), /Cause candidate ranking/);
-    assert.doesNotMatch(renderedText(renderer), /Unable to load investigation from the API/);
+    assert.match(renderedText(renderer), /Where to start/);
+    assert.doesNotMatch(renderedText(renderer), /Could not load this investigation/);
   } finally {
     if (renderer) {
       await act(async () => renderer.unmount());
@@ -2380,31 +2888,31 @@ test("narrative backend error codes map to safe product copy", async () => {
   const cases = [
     [
       "NARRATIVE_PROVIDER_TIMEOUT",
-      "The AI explanation request timed out. Your deterministic investigation is still available.",
+      "AI explanation is temporarily unavailable because the request timed out. Your evidence and ranking are still available.",
     ],
     [
       "NARRATIVE_PROVIDER_UNAVAILABLE",
-      "AI explanation is temporarily unavailable. Your deterministic investigation is still available.",
+      "AI explanation is temporarily unavailable. Your evidence and ranking are still available.",
     ],
     [
       "NARRATIVE_PROVIDER_ERROR",
-      "The AI provider rejected the explanation request. Your deterministic investigation is still available.",
+      "AI explanation is temporarily unavailable. The AI service did not accept the request. Your evidence and ranking are still available.",
     ],
     [
       "NARRATIVE_PROVIDER_INVALID_RESPONSE",
-      "The AI provider returned an invalid response. Your deterministic investigation is still available.",
+      "AI explanation is temporarily unavailable. The AI service sent a response we could not use. Your evidence and ranking are still available.",
     ],
     [
       "NARRATIVE_INVALID_OUTPUT",
-      "The AI returned an invalid explanation. Your deterministic investigation is still available.",
+      "AI explanation is temporarily unavailable. The explanation was not in a usable format. Your evidence and ranking are still available.",
     ],
     [
       "NARRATIVE_GROUNDING_FAILED",
-      "The generated explanation could not be verified against the investigation evidence.",
+      "The AI explanation was not shown because it could not be checked against this investigation's evidence. Your evidence and ranking are still available.",
     ],
     [
       "NARRATIVE_SEMANTIC_VALIDATION_FAILED",
-      "The generated explanation conflicted with deterministic ranking facts and was rejected.",
+      "The AI explanation was not shown because it disagreed with the evidence-based ranking. Your evidence and ranking are still available.",
     ],
   ];
 
@@ -2454,7 +2962,7 @@ test("narrative cooldown uses Retry-After seconds and supports HTTP dates", asyn
     assert.equal(error.retryAfterSeconds, 5);
     assert.equal(
       error.message,
-      "A fresh explanation was just generated. Try again in 5 seconds.",
+      "An explanation was just created. Try again in 5 seconds.",
     );
     return true;
   });
@@ -2486,7 +2994,7 @@ test("narrative malformed success and unknown failures reject safely", async () 
     assert.equal(error.code, "NARRATIVE_INVALID_RESPONSE");
     assert.equal(
       error.message,
-      "The AI explanation response could not be read. Your deterministic investigation is still available.",
+      "AI explanation is temporarily unavailable. We could not read the explanation response. Your evidence and ranking are still available.",
     );
     return true;
   });
@@ -2494,7 +3002,7 @@ test("narrative malformed success and unknown failures reject safely", async () 
     assert.equal(error.code, "NARRATIVE_HTTP_ERROR");
     assert.equal(
       error.message,
-      "AI explanation is temporarily unavailable. Your deterministic investigation is still available.",
+      "AI explanation is temporarily unavailable. Your evidence and ranking are still available.",
     );
     return true;
   });
@@ -2503,7 +3011,7 @@ test("narrative malformed success and unknown failures reject safely", async () 
 test("actual backend not-configured code keeps deterministic availability explicit", () => {
   assert.equal(
     narrativeErrorsModule.narrativeErrorMessage("NARRATIVE_NOT_CONFIGURED"),
-    "AI explanation is not configured. Your deterministic investigation is still available.",
+    "AI explanation is not set up. Your evidence and ranking are still available.",
   );
 });
 test("narrative stays idle until explicitly generated and refreshes on demand", async () => {
@@ -2591,11 +3099,11 @@ test("narrative loading disables only its action and keeps deterministic ranking
 
   const loadingText = renderedText(renderer);
   assert.equal(calls, 1);
-  assert.match(loadingText, /Cause candidate ranking/);
+  assert.match(loadingText, /Where to start/);
   assert.match(loadingText, /Generating explanation…/);
   assert.match(
     loadingText,
-    /Reviewing the current deterministic investigation evidence./,
+    /Preparing an explanation of this investigation's evidence./,
   );
   assert.equal(
     renderer.root
@@ -2666,9 +3174,9 @@ test("narrative success renders snapshot metadata, deterministic facts, and hide
   assert.match(html, /Candidate explanations/);
   assert.ok(html.indexOf(postgresExplanation) < html.indexOf(authExplanation));
   assert.ok(html.indexOf(authExplanation) < html.indexOf(userExplanation));
-  assert.match(html, /Observed failing leaf/);
-  assert.match(html, /Support 4/);
-  assert.match(html, /Support 6/);
+  assert.match(html, /Failing step at branch end/);
+  assert.match(html, /4 types of connections and patterns/);
+  assert.match(html, /6 types of connections and patterns/);
   assert.match(html, /1 failure/);
   assert.match(html, /2 failures/);
   assert.doesNotMatch(html, new RegExp(narrativeFixture.contextHash));
@@ -2726,10 +3234,10 @@ test("narrative summary and candidates render block-level deterministic referenc
   const summaryFindingId = narrativeFixture.narrative.summary.findingIds[0];
   const summarySignalId = narrativeFixture.narrative.summary.signalIds[0];
 
-  assert.equal((html.match(/Evidence references/g) ?? []).length, 4);
+  assert.equal((html.match(/Linked evidence/g) ?? []).length, 4);
   assert.match(
     html,
-    /Attached by the backend to this entire explanation block/,
+    /Linked to this explanation as a whole, not to individual sentences/,
   );
   assert.match(
     html,
@@ -2739,7 +3247,7 @@ test("narrative summary and candidates render block-level deterministic referenc
     html,
     new RegExp(`href="#${correlationsModule.signalDomId(summarySignalId)}"`),
   );
-  assert.match(html, /Trace failure chain/);
+  assert.match(html, /Failures along a call path/);
   assert.doesNotMatch(
     html,
     /root cause|caused by|culprit|confirmed cause|likely cause|confidence|probability/i,
@@ -2771,13 +3279,13 @@ test("narrative evidence references preserve missing IDs and explain empty block
     { ...commonProps, snapshot: emptySnapshot },
   );
 
-  assert.match(missingHtml, /Finding reference unavailable/);
+  assert.match(missingHtml, /Linked finding not available/);
   assert.match(missingHtml, /finding-reference-missing/);
-  assert.match(missingHtml, /Signal reference unavailable/);
+  assert.match(missingHtml, /Linked pattern not available/);
   assert.match(missingHtml, /signal-reference-missing/);
   assert.match(
     emptyHtml,
-    /No evidence references were returned for this explanation block/,
+    /No evidence links were provided for this explanation/,
   );
 });
 
@@ -2870,9 +3378,9 @@ test("narrative tie snapshot preserves co-equal deterministic rank order", () =>
   const redisExplanation =
     "Redis has equivalent deterministic failure facts in this snapshot.";
 
-  assert.equal((html.match(/>#1</g) ?? []).length, 2);
-  assert.equal((html.match(/Co-equal candidate/g) ?? []).length, 2);
-  assert.doesNotMatch(html, />#2</);
+  assert.equal((html.match(/>Candidate rank #1</g) ?? []).length, 2);
+  assert.equal((html.match(/Tied candidate/g) ?? []).length, 2);
+  assert.doesNotMatch(html, />Candidate rank #2</);
   assert.ok(html.indexOf(postgresExplanation) < html.indexOf(redisExplanation));
   assert.doesNotMatch(html, new RegExp(narrativeTieFixture.contextHash));
 });
@@ -2923,10 +3431,10 @@ test("narrative failure stays local and retries exactly once only when requested
 
   assert.equal(calls, 1);
   const failureText = renderedText(renderer);
-  assert.match(failureText, /Cause candidate ranking/);
+  assert.match(failureText, /Where to start/);
   assert.match(
     failureText,
-    /AI explanation is temporarily unavailable. Your deterministic investigation is still available./,
+    /AI explanation is temporarily unavailable. Your evidence and ranking are still available./,
   );
   assert.match(failureText, /Retry explanation/);
 
@@ -2947,7 +3455,7 @@ test("narrative failure stays local and retries exactly once only when requested
 
   assert.equal(calls, 2);
   assert.match(renderedText(renderer), /Investigation summary/);
-  assert.match(renderedText(renderer), /Cause candidate ranking/);
+  assert.match(renderedText(renderer), /Where to start/);
 
   await act(async () => {
     renderer.unmount();
@@ -3132,9 +3640,9 @@ test("evidence story retains ungrouped findings and reports unresolved reference
   );
   assert.match(html, /Unconnected findings/);
   assert.match(html, /Finding outside explicit evidence groups/);
-  assert.match(html, /Finding reference unavailable/);
+  assert.match(html, /Linked finding unavailable/);
   assert.match(html, /finding-reference-missing/);
-  assert.match(html, /Relationship reference unavailable/);
+  assert.match(html, /Linked connection unavailable/);
   assert.match(html, /correlation-reference-missing/);
 });
 
@@ -3147,8 +3655,8 @@ test("three-signal evidence story connects factual observations without causal c
   assert.match(html, /How the observations connect/);
   assert.match(html, /6 related findings across 2 services/);
   assert.match(html, /Observed findings/);
-  assert.match(html, /Factual connections/);
-  assert.match(html, /Structural patterns/);
+  assert.match(html, /Connections/);
+  assert.match(html, /Evidence patterns/);
   assert.match(html, /The checkout ERROR log and trace failure reference the same span/);
   assert.match(html, /This group contains log, metric and trace findings/);
   assert.ok(
@@ -3218,17 +3726,18 @@ test("three-signal leader exposes factual reasons without inventing causality", 
     candidateProps(unifiedIncident),
   );
 
-  assert.match(html, /Strongest investigation starting point/);
+  assert.match(html, /Best place to start/);
   assert.match(html, /Start here/);
-  assert.match(html, /Observed failing leaf span/);
-  assert.match(html, /Exact-span ERROR log/);
-  assert.match(html, /Metric threshold evidence/);
-  assert.match(html, /Cross-service failure/);
-  assert.match(html, /Trace failure chain/);
+  assert.match(html, /Failing step at branch end/);
+  assert.match(html, /Error log linked to the same step/);
+  assert.match(html, /Metric reading met an alert rule/);
+  assert.match(html, /Failures across services/);
+  assert.match(html, /Failures along a call path/);
+  assert.match(html, /evidence-backed investigation starting points, not confirmed root causes/);
   assert.ok(html.indexOf("demo-checkout") < html.indexOf("demo-gateway"));
   assert.doesNotMatch(
     html,
-    /decisive dimension|root cause is|caused by|confirmed cause|probability|confidence/i,
+    /decisive dimension|root cause is|caused by|confirmed as the cause|probability|confidence/i,
   );
 });
 
@@ -3271,25 +3780,26 @@ test("Cause Candidate Ranking keeps backend order in compact factual cards", () 
   );
   assert.ok(html.indexOf("postgres") < html.indexOf("auth-service"));
   assert.ok(html.indexOf("auth-service") < html.indexOf("user-service"));
-  assert.match(html, /Observed failing leaf/);
-  assert.equal((html.match(/>Error ancestor</g) ?? []).length, 2);
-  assert.match(html, /Support 4/);
-  assert.match(html, /Support 6/);
+  assert.match(html, /Failing step at branch end/);
+  assert.equal((html.match(/>Failure with nested failing steps</g) ?? []).length, 2);
+  assert.match(html, /4 types of connections and patterns/);
+  assert.match(html, /6 types of connections and patterns/);
   assert.match(html, />1 failure</);
   assert.match(html, />2 failures</);
   assert.equal((html.match(/View details/g) ?? []).length, 3);
-  assert.doesNotMatch(html, /Ranking reasons/);
+  assert.doesNotMatch(html, /Why this candidate ranks here/);
   assert.doesNotMatch(html, /Candidate evidence/);
   for (const rank of resolved.causeCandidateRanks) {
     assert.doesNotMatch(html, new RegExp(rank.candidateId));
   }
   assert.match(
     html,
-    /Backend order using failure severity, trace position, structural support, and failure count/,
+    /They are ranked by failure severity, then request-path position/,
   );
+  assert.match(html, /evidence-backed investigation starting points, not confirmed root causes/);
   assert.doesNotMatch(
     html,
-    /root cause|culprit|caused by|confirmed cause|probability|confidence score|AI confidence|root cause score/i,
+    /root cause is|is (?:a|the) root cause|root cause:|culprit|caused by|confirmed as the cause|probability|confidence score|AI confidence|root cause score/i,
   );
 });
 
@@ -3310,16 +3820,17 @@ test("semantic ties render as co-equal rank 1 cards without visual rank 2", () =
       { service: "redis", rank: 1, tied: true },
     ],
   );
-  assert.equal((html.match(/>#1<\/span>/g) ?? []).length, 2);
-  assert.doesNotMatch(html, />#2<\/span>/);
-  assert.ok((html.match(/Co-equal candidate/g) ?? []).length >= 2);
-  assert.match(html, /row order does not break the tie/);
-  assert.match(html, /Co-leading investigation starting points/);
-  assert.equal((html.match(/Why this candidate is co-leading/g) ?? []).length, 2);
-  assert.doesNotMatch(html, /Strongest investigation starting point/);
+  assert.equal((html.match(/>Candidate rank #1<\/span>/g) ?? []).length, 2);
+  assert.doesNotMatch(html, />Candidate rank #2<\/span>/);
+  assert.ok((html.match(/Tied candidate/g) ?? []).length >= 2);
+  assert.match(html, /Row order does not pick a winner/);
+  assert.match(html, /Tied starting points/);
+  assert.equal((html.match(/Why this starting point is tied/g) ?? []).length, 2);
+  assert.doesNotMatch(html, /Best place to start/);
+  assert.match(html, /evidence-backed investigation starting points, not confirmed root causes/);
   assert.doesNotMatch(
     html,
-    /root cause|culprit|caused by|confirmed cause|probability|confidence/i,
+    /root cause is|is (?:a|the) root cause|root cause:|culprit|caused by|confirmed as the cause|probability|confidence/i,
   );
 });
 
@@ -3344,7 +3855,7 @@ test("candidate View details reveals reasons, evidence navigation, and emphasis"
   });
 
   const initialText = renderedText(renderer);
-  assert.doesNotMatch(initialText, /Ranking reasons/);
+  assert.doesNotMatch(initialText, /Why this candidate ranks here/);
   assert.doesNotMatch(initialText, /Candidate evidence/);
 
   const viewDetails = renderer.root
@@ -3359,7 +3870,7 @@ test("candidate View details reveals reasons, evidence navigation, and emphasis"
 
   assert.equal(viewDetails.props["aria-expanded"], true);
   const expandedText = renderedText(renderer);
-  assert.match(expandedText, /Ranking reasons/);
+  assert.match(expandedText, /Why this candidate ranks here/);
   assert.match(expandedText, /Candidate evidence/);
   assert.match(expandedText, /Highest failure severity: high/);
 
@@ -3396,7 +3907,7 @@ test("candidate View details reveals reasons, evidence navigation, and emphasis"
 test("Cause Candidate Ranking has a compact factual empty state", () => {
   const html = markup(candidateModule.CauseCandidateRanking, candidateProps(empty));
 
-  assert.match(html, /No possible failure origins were ranked for this investigation/);
+  assert.match(html, /No starting points were ranked for this investigation/);
 });
 
 test("runtime validation enforces every required candidate structure", () => {
@@ -3487,11 +3998,11 @@ test("Evidence priority preserves backend order and renders severity before stru
   );
   assert.match(
     html,
-    /Severity is considered first. Structural correlation and signal support are considered second./,
+    /Findings are ordered by severity first, then by the types of connections and patterns that support them/,
   );
-  assert.match(html, /Support 6/);
-  assert.match(html, /Same span/);
-  assert.match(html, /Trace failure chain/);
+  assert.match(html, /6 types of connections and patterns/);
+  assert.match(html, /Same step \(span\)/);
+  assert.match(html, /Failures along a call path/);
   assert.doesNotMatch(
     html,
     /root cause|confidence|probability|cause score|likely cause|culprit/i,
@@ -3511,13 +4022,13 @@ test("Evidence priority links and selected state navigate to the ranked finding"
     findings: resolved.findings,
     timeline: resolved.timeline,
     highlightedFindingIds: new Set([selected.findingId]),
-    highlightedFindingLabel: "Selected priority",
+    highlightedFindingLabel: "Selected finding priority",
     openSection: "findings",
   });
 
   assert.match(html, new RegExp(`href="#${findingId}"`));
   assert.match(html, /aria-current="location"/);
-  assert.match(findingsHtml, /Selected priority/);
+  assert.match(findingsHtml, /Selected finding priority/);
   assert.match(findingsHtml, new RegExp(`id="${findingId}"`));
 });
 
@@ -3532,6 +4043,243 @@ test("Evidence priority has a compact factual empty state", () => {
   assert.match(html, /No findings were ranked for this investigation/);
 });
 
+test("rank and priority copy keeps candidate rank 1 distinct from linked finding priority 2", async () => {
+  const firstRank = unifiedIncident.causeCandidateRanks[0];
+  const candidate = unifiedIncident.causeCandidates.find(item => item.id === firstRank.candidateId);
+  const findingId = unifiedIncident.evidenceRanks[1].findingId;
+  assert.equal(firstRank.rank, 1);
+  assert.equal(firstRank.service, "demo-checkout");
+  assert.ok(candidate.findingIds.includes(findingId));
+
+  await withStartingPointPage(unifiedIncident, async renderer => {
+    const ranking = renderer.root.findByType(candidateModule.CauseCandidateRanking);
+    const rows = ranking.findAllByType("article");
+    assert.deepEqual(rows.map(row => row.props["aria-label"]), unifiedIncident.causeCandidateRanks.map(rank => `Candidate rank #${rank.rank}, ${rank.service}`));
+    assert.ok(rows[0].findAllByType("span").some(span => span.children.join("") === "Candidate rank #1"));
+    const open = rows[0].findAllByType("button").find(button => button.props["aria-controls"] === "candidate-detail-drawer");
+    await act(async () => open.props.onClick());
+    const drawer = ranking.findByType(detailDrawerModule.InvestigationDetailDrawer);
+    assert.equal(drawer.props.title, "Candidate rank #1 · demo-checkout");
+    assert.ok(ranking.findAllByType("a").some(link => link.props.href === `#${targetsModule.traceDomId(candidate.traceIds[0])}`));
+
+    const story = renderer.root.findByType(evidenceStoryModule.EvidenceStory);
+    const link = story.findAllByType("a").find(item => item.props.href === `#${correlationsModule.findingDomId(findingId)}`);
+    assert.ok(link.findAllByType("span").some(span => span.children.join("") === "Finding priority #2"));
+    await act(async () => link.props.onClick());
+    const findings = renderer.root.findByType(findingsModule.FindingsTimeline);
+    assert.equal(findings.props.openSection, "findings");
+    assert.equal(findings.props.reviewedFindingId, findingId);
+    assert.deepEqual([...findings.props.highlightedFindingIds], [findingId]);
+    assert.equal(findings.props.highlightedFindingLabel, "Selected finding");
+    const row = findings.findByProps({ id: correlationsModule.findingDomId(findingId) });
+    assert.ok(row.findAllByType("span").some(span => span.children.join("") === "Finding priority #2"));
+    assert.match(renderedText(renderer), /Finding priority reasons/);
+    assert.equal(ranking.props.ranks, unifiedIncident.causeCandidateRanks);
+    assert.equal(story.props.ranks, unifiedIncident.evidenceRanks);
+  });
+});
+
+test("rank and priority copy preserves global finding priorities across evidence threads", async () => {
+  const ranks = unifiedIncident.evidenceRanks;
+  const groups = [
+    { ...unifiedIncident.evidenceGroups[0], id: "thread-later-priorities", findingIds: [ranks[1].findingId, ranks[3].findingId] },
+    { ...unifiedIncident.evidenceGroups[0], id: "thread-first-priority", findingIds: [ranks[0].findingId] },
+  ];
+  const before = structuredClone({ ranks, groups });
+  let renderer;
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(evidenceStoryModule.EvidenceStory, {
+      ...evidenceStoryProps(unifiedIncident), evidenceGroups: groups,
+    })); });
+    const priorities = thread => thread.findAllByType("a").map(link => link.findAllByType("span").find(span => span.children.join("").startsWith("Finding priority #")).children.join(""));
+    assert.deepEqual(priorities(renderer.root.findByProps({ "data-evidence-thread": groups[0].id })), ["Finding priority #2", "Finding priority #4"]);
+    assert.deepEqual(priorities(renderer.root.findByProps({ "data-evidence-thread": groups[1].id })), ["Finding priority #1"]);
+    for (const link of renderer.root.findAllByType("a")) {
+      const index = ranks.findIndex(rank => link.props.href === `#${correlationsModule.findingDomId(rank.findingId)}`);
+      assert.ok(index >= 0);
+      assert.ok(link.findAllByType("span").some(span => span.children.join("") === `Finding priority #${index + 1}`));
+    }
+    assert.deepEqual({ ranks, groups }, before);
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
+test("rank and priority copy qualifies legacy finding priorities without inventing missing ranks", () => {
+  const ranks = resolved.evidenceRanks;
+  const html = markup(priorityModule.EvidencePriority, {
+    ranks, findings: [], selectedFindingId: ranks[1].findingId, onSelectFinding() {},
+  });
+  assert.match(html, /id="evidence-priority"/);
+  assert.match(html, />Finding priority<\/h2>/);
+  assert.deepEqual([...html.matchAll(/>Finding priority #(\d+)<\/span>/g)].map(match => Number(match[1])), ranks.map((_, index) => index + 1));
+  assert.match(html, /Linked finding unavailable in this investigation/);
+  assert.doesNotMatch(html, />\s*(?:#\d+|Rank \d+|Priority #\d+)\s*</);
+
+  const unranked = markup(findingsModule.FindingsTimeline, {
+    findings: [unifiedIncident.findings[0]], timeline: [], evidenceRanks: [],
+    openSection: "findings", reviewedFindingId: unifiedIncident.findings[0].id,
+  });
+  assert.doesNotMatch(unranked, /Finding priority #\d/);
+  assert.match(unranked, /No linked evidence is available for this finding/);
+  const emptyHtml = markup(priorityModule.EvidencePriority, {
+    ranks: [], findings: [], selectedFindingId: null, onSelectFinding() {},
+  });
+  assert.doesNotMatch(emptyHtml, /Finding priority #\d/);
+});
+
+test("rank and priority copy qualifies AI candidate badges while preserving ranks ties and raw text", () => {
+  for (const [investigation, snapshot] of [[resolved, narrativeFixture], [candidateTie, narrativeTieFixture]]) {
+    const before = structuredClone(snapshot);
+    const html = markup(narrativePanelModule.InvestigationNarrativeSnapshotContent, {
+      snapshot, ...candidateProps(investigation), onNavigateFinding() {}, onNavigateSignal() {},
+    });
+    assert.deepEqual([...html.matchAll(/>Candidate rank #(\d+)<\/span>/g)].map(match => Number(match[1])), investigation.causeCandidateRanks.map(rank => rank.rank));
+    assert.doesNotMatch(html, />\s*(?:#\d+|Rank \d+|Priority #\d+)\s*</);
+    for (const block of snapshot.narrative.candidates) assert.ok(html.includes(block.text));
+    if (investigation === candidateTie) {
+      assert.equal((html.match(/>Candidate rank #1<\/span>/g) ?? []).length, 2);
+      assert.ok((html.match(/Tied candidate/g) ?? []).length >= 2);
+      assert.doesNotMatch(html, />Candidate rank #2<\/span>/);
+    }
+    assert.deepEqual(snapshot, before);
+  }
+});
+
+test("rank and priority copy qualifies navigation while retaining durable section anchors", () => {
+  const items = sidebarModule.investigationSectionGroups.flatMap(group => group.items);
+  const findingItem = items.find(item => item.id === "evidence-priority");
+  const candidateItem = items.find(item => item.id === "candidate-ranking");
+  assert.equal(findingItem.label, "Finding priority");
+  assert.equal(candidateItem.label, "Where to start");
+  const html = markup(sidebarModule.SidebarNavItem, {
+    ...findingItem, href: "#evidence-priority", active: true, collapsed: false, currentType: "location", nested: true,
+  });
+  assert.match(html, /href="#evidence-priority"/);
+  assert.match(html, /Finding priority/);
+  assert.match(html, /aria-current="location"/);
+  assert.doesNotMatch(html, /Evidence priority|Selected priority/);
+});
+
+test("support units use explicit type labels for zero one and supplied totals without scaling", () => {
+  for (const count of [0, 1, 6, 9001]) {
+    const html = markup(supportTypesModule.SupportTypeCount, { count, className: "support-count-style" });
+    assert.ok(html.includes(`>${count} ${count === 1 ? "type of connection or pattern" : "types of connections and patterns"}</span>`));
+    assert.match(html, /class="support-count-style"/);
+    assert.match(html, /Each type counts once, even if it appears many times/);
+    assert.match(html, /not the number of findings or proof that the evidence is independent/);
+    assert.doesNotMatch(html, />Support \d+<|>Support score|confidence|%/i);
+  }
+});
+
+test("support units expose the supplied category breakdown with readable labels and exact codes", () => {
+  const correlationTypes = ["same_span", "same_trace"];
+  const signalTypes = ["trace_failure_chain"];
+  const before = structuredClone({ correlationTypes, signalTypes });
+  const html = markup(supportTypesModule.SupportTypeBreakdown, { correlationTypes, signalTypes });
+  assert.match(html, /2 connection types \+ 1 pattern type/);
+  assert.match(html, /Same step \(span\)/);
+  assert.match(html, /Same request path \(trace\)/);
+  assert.match(html, /Failures along a call path/);
+  for (const code of [...correlationTypes, ...signalTypes]) assert.ok(html.includes(`>${code}</code>`));
+  assert.match(html, /Adds the number of different connection types and pattern types/);
+  assert.deepEqual({ correlationTypes, signalTypes }, before);
+  const zero = markup(supportTypesModule.SupportTypeBreakdown, { correlationTypes: [], signalTypes: [] });
+  assert.match(zero, /0 connection types \+ 0 pattern types/);
+  assert.equal((zero.match(/None listed\./g) ?? []).length, 2);
+});
+
+test("support units clarify candidate totals and breakdown without changing reasons or exact links", async () => {
+  await withStartingPointPage(unifiedIncident, async renderer => {
+    const rank = unifiedIncident.causeCandidateRanks[0];
+    const facts = unifiedIncident.causeCandidateFacts.find(item => item.candidateId === rank.candidateId);
+    const candidate = unifiedIncident.causeCandidates.find(item => item.id === rank.candidateId);
+    const ranking = renderer.root.findByType(candidateModule.CauseCandidateRanking);
+    assert.deepEqual(ranking.findAllByType(supportTypesModule.SupportTypeCount).map(count => count.props.count), unifiedIncident.causeCandidateRanks.map(item => unifiedIncident.causeCandidateFacts.find(fact => fact.candidateId === item.candidateId).supportDiversity));
+    assert.match(renderedText(renderer), /then types of connections and patterns/);
+    const open = ranking.findAllByType("button").find(button => button.props["aria-controls"] === "candidate-detail-drawer");
+    await act(async () => open.props.onClick());
+    const breakdown = ranking.findByType(supportTypesModule.SupportTypeBreakdown);
+    assert.equal(breakdown.props.correlationTypes, facts.correlationTypes);
+    assert.equal(breakdown.props.signalTypes, facts.signalTypes);
+    assert.equal(facts.supportDiversity, facts.correlationTypes.length + facts.signalTypes.length);
+    for (const reason of rank.reasons) assert.ok(ranking.findAllByType("span").some(span => span.children.join("") === reason));
+    assert.ok(ranking.findAllByType("a").some(link => link.props.href === `#${correlationsModule.findingDomId(candidate.findingIds[0])}`));
+    assert.ok(ranking.findAllByType("a").some(link => link.props.href === `#${targetsModule.traceDomId(candidate.traceIds[0])}`));
+    assert.equal(ranking.props.ranks, unifiedIncident.causeCandidateRanks);
+  });
+});
+
+test("support units keep missing candidate facts total while marking its breakdown unavailable", async () => {
+  await withStartingPointPage({ ...unifiedIncident, causeCandidateFacts: [] }, async renderer => {
+    const ranking = renderer.root.findByType(candidateModule.CauseCandidateRanking);
+    assert.deepEqual(ranking.findAllByType(supportTypesModule.SupportTypeCount).map(count => count.props.count), unifiedIncident.causeCandidateRanks.map(rank => rank.supportDiversity));
+    const open = ranking.findAllByType("button").find(button => button.props["aria-controls"] === "candidate-detail-drawer");
+    await act(async () => open.props.onClick());
+    assert.equal(ranking.findAllByType(supportTypesModule.SupportTypeBreakdown).length, 0);
+    assert.match(renderedText(renderer), /type count comes from its rank, but the list of types is not available/);
+    assert.doesNotMatch(renderedText(renderer), /None listed/);
+  });
+});
+
+test("support units qualify finding story legacy panel and focused review using unchanged rank totals", async () => {
+  let renderer;
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(evidenceStoryModule.EvidenceStory, evidenceStoryProps(unifiedIncident))); });
+    for (const link of renderer.root.findAllByType("a")) {
+      const rank = unifiedIncident.evidenceRanks.find(item => link.props.href === `#${correlationsModule.findingDomId(item.findingId)}`);
+      assert.ok(rank);
+      assert.equal(link.findByType(supportTypesModule.SupportTypeCount).props.count, rank.supportScore);
+    }
+    const legacy = markup(priorityModule.EvidencePriority, {
+      ranks: unifiedIncident.evidenceRanks, findings: unifiedIncident.findings, selectedFindingId: null, onSelectFinding() {},
+    });
+    assert.deepEqual([...legacy.matchAll(/>(\d+) (?:types of connections and patterns|type of connection or pattern)<\/span>/g)].map(match => Number(match[1])), unifiedIncident.evidenceRanks.map(rank => rank.supportScore));
+    const rank = unifiedIncident.evidenceRanks[1];
+    const review = markup(findingsModule.FindingsTimeline, {
+      ...unifiedIncident, evidenceRanks: unifiedIncident.evidenceRanks,
+      openSection: "findings", reviewedFindingId: rank.findingId,
+    });
+    assert.ok(review.includes(`>${rank.supportScore} types of connections and patterns</span>`));
+    assert.ok(review.includes(`${rank.correlationTypes.length} connection types + ${rank.signalTypes.length} pattern types`));
+    for (const code of [...rank.correlationTypes, ...rank.signalTypes]) assert.ok(review.includes(`>${code}</code>`));
+    for (const html of [legacy, review]) assert.doesNotMatch(html, />Support \d+<|>Support score/);
+  } finally {
+    if (renderer) await act(async () => renderer.unmount());
+  }
+});
+
+test("support units preserve AI text ranks ties and facts or rank fallback counts", () => {
+  for (const [investigation, snapshot] of [[resolved, narrativeFixture], [candidateTie, narrativeTieFixture]]) {
+    for (const facts of [investigation.causeCandidateFacts, []]) {
+      const before = structuredClone({ facts, snapshot });
+      const html = markup(narrativePanelModule.InvestigationNarrativeSnapshotContent, {
+        snapshot, ...candidateProps(investigation), facts, onNavigateFinding() {}, onNavigateSignal() {},
+      });
+      assert.deepEqual([...html.matchAll(/>(\d+) (?:types of connections and patterns|type of connection or pattern)<\/span>/g)].map(match => Number(match[1])), investigation.causeCandidateRanks.map(rank => facts.find(fact => fact.candidateId === rank.candidateId)?.supportDiversity ?? rank.supportDiversity));
+      for (const block of snapshot.narrative.candidates) assert.ok(html.includes(block.text));
+      assert.deepEqual({ facts, snapshot }, before);
+      assert.doesNotMatch(html, />Support \d+<|>Support score/);
+    }
+  }
+});
+
+test("support units never reconcile an inconsistent supplied total with its listed types", async () => {
+  const facts = unifiedIncident.causeCandidateFacts.map((fact, index) => index === 0 ? { ...fact, supportDiversity: 99 } : fact);
+  const firstRank = unifiedIncident.causeCandidateRanks.find(rank => rank.candidateId === facts[0].candidateId);
+  await withStartingPointPage({ ...unifiedIncident, causeCandidateFacts: facts }, async renderer => {
+    const ranking = renderer.root.findByType(candidateModule.CauseCandidateRanking);
+    const row = ranking.findAllByType("article").find(item => item.props["aria-label"] === `Candidate rank #${firstRank.rank}, ${firstRank.service}`);
+    assert.equal(row.findByType(supportTypesModule.SupportTypeCount).props.count, 99);
+    const open = row.findAllByType("button").find(button => button.props["aria-controls"] === "candidate-detail-drawer");
+    await act(async () => open.props.onClick());
+    const breakdown = ranking.findByType(supportTypesModule.SupportTypeBreakdown);
+    assert.equal(breakdown.props.correlationTypes, facts[0].correlationTypes);
+    assert.equal(breakdown.props.signalTypes, facts[0].signalTypes);
+    assert.equal(firstRank.supportDiversity, unifiedIncident.causeCandidateRanks.find(rank => rank.candidateId === firstRank.candidateId).supportDiversity);
+  });
+});
+
 test("Structural signals render all stable factual labels and finding references", () => {
   const html = markup(signalsModule.StructuralSignals, {
     signals: resolved.signals,
@@ -3541,9 +4289,9 @@ test("Structural signals render all stable factual labels and finding references
     detailsOpen: true,
   });
 
-  assert.match(html, /Cross-service failure evidence/);
-  assert.match(html, /Multiple telemetry types/);
-  assert.match(html, /Trace failure chain/);
+  assert.match(html, /Failures across services/);
+  assert.match(html, /More than one evidence type/);
+  assert.match(html, /Failures along a call path/);
   assert.match(html, /Error evidence was observed across 3 services/);
   assert.match(html, /aria-pressed="true"/);
   assert.match(
@@ -3569,7 +4317,7 @@ test("Structural signals use a compact empty state when no signals exist", () =>
   });
 
   assert.deepEqual(empty.signals, []);
-  assert.match(html, /No structural signals were identified/);
+  assert.match(html, /No evidence patterns were found/);
 });
 
 test("Integrity UI stays subtle for clean investigations", () => {
@@ -3579,8 +4327,8 @@ test("Integrity UI stays subtle for clean investigations", () => {
     traces: resolved.traces,
   });
 
-  assert.match(html, /Telemetry references verified/);
-  assert.doesNotMatch(html, /Telemetry reference issues/);
+  assert.match(html, /Data checks/);
+  assert.doesNotMatch(html, /Data check issues/);
 });
 
 test("Integrity UI explains a service and span mismatch and links existing evidence", () => {
@@ -3601,7 +4349,7 @@ test("Integrity UI explains a service and span mismatch and links existing evide
     issue.spanId,
   );
 
-  assert.match(html, /Service and span mismatch/);
+  assert.match(html, /Service and step mismatch/);
   assert.match(
     html,
     /Log service billing-service does not match referenced span service auth-service/,
@@ -3609,8 +4357,8 @@ test("Integrity UI explains a service and span mismatch and links existing evide
   assert.match(html, new RegExp(`href="#${logId}"`));
   assert.match(html, new RegExp(`href="#${spanId}"`));
   assert.match(html, /View related log/);
-  assert.match(html, /View referenced span/);
-  assert.match(html, /do not invalidate the incident/);
+  assert.match(html, /View linked step/);
+  assert.match(html, /do not mean the incident is invalid/);
 });
 
 test("Integrity UI handles missing trace and span references without inventing targets", () => {
@@ -3622,8 +4370,8 @@ test("Integrity UI handles missing trace and span references without inventing t
   });
   const traceId = targetsModule.traceDomId("trace-integrity-existing");
 
-  assert.match(html, /Missing trace reference/);
-  assert.match(html, /Missing span reference/);
+  assert.match(html, /Linked trace unavailable/);
+  assert.match(html, /Linked step unavailable/);
   assert.match(html, /trace-not-collected/);
   assert.match(html, /span-not-collected/);
   assert.match(html, /View related log/);
@@ -4120,7 +4868,7 @@ test("review hashes restore finding and exact-log state across history navigatio
       }).length,
       1,
     );
-    assert.match(renderedText(renderer), /Exact span selection/);
+    assert.match(renderedText(renderer), /Selected request step/);
     assert.match(renderedText(renderer), new RegExp(log.traceId));
     assert.doesNotMatch(renderedText(renderer), /Focused evidence review/);
 

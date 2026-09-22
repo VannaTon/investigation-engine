@@ -44,15 +44,6 @@ button {
   background: #17212b;
 }
 
-.live-ping {
-  animation: live-ping 1.7s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.live-window {
-  animation: live-window 2.4s ease-in-out infinite alternate;
-  transform-origin: left;
-}
-
 .trace-scroll:focus-visible {
   outline: 2px solid #17212b;
   outline-offset: -3px;
@@ -103,23 +94,6 @@ section[tabindex="-1"]:focus-visible {
 .trace-children > .trace-branch:last-child > .trace-node {
   position: relative;
   z-index: 1;
-}
-
-@keyframes live-ping {
-  75%,
-  100% {
-    transform: scale(2);
-    opacity: 0;
-  }
-}
-
-@keyframes live-window {
-  from {
-    transform: scaleX(0.92);
-  }
-  to {
-    transform: scaleX(1);
-  }
 }
 
 @media (max-width: 640px) {

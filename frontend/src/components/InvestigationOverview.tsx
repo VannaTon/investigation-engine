@@ -1,16 +1,17 @@
+import type { ReactNode } from "react";
 import {
-  CheckCircle2,
-  CircleAlert,
   Clock3,
   LockKeyhole,
-  RadioTower,
   Server,
 } from "lucide-react";
 import { formatDateTime } from "../lib/formatters";
+import { AlertIdentifiers } from "./AlertIdentifiers";
+import { AlertStatusBadge } from "./AlertStatusBadge";
 import type { AlertInvestigationResponse } from "../types/investigation";
 
 interface InvestigationOverviewProps {
   investigation: AlertInvestigationResponse;
+  children?: ReactNode;
 }
 
 interface SummaryStatProps {
@@ -23,7 +24,7 @@ interface SummaryStatProps {
 function SummaryStat({ label, value, detail, critical = false }: SummaryStatProps) {
   return (
     <div className="min-w-0 px-4 py-4 first:pl-0 last:pr-0 sm:px-5">
-      <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-slate">
+      <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate">
         {label}
       </p>
       <p
@@ -31,7 +32,7 @@ function SummaryStat({ label, value, detail, critical = false }: SummaryStatProp
       >
         {value}
       </p>
-      <p className="mt-1 truncate text-xs text-slate" title={detail}>
+      <p className="mt-1 break-words text-xs text-slate [overflow-wrap:anywhere]" title={detail}>
         {detail}
       </p>
     </div>
@@ -40,11 +41,11 @@ function SummaryStat({ label, value, detail, critical = false }: SummaryStatProp
 
 export function InvestigationOverview({
   investigation,
+  children,
 }: InvestigationOverviewProps) {
   const { alert, window, summary } = investigation;
   const isResolved = alert.status === "resolved";
   const isFiring = alert.status === "firing";
-  const StatusIcon = isResolved ? CheckCircle2 : CircleAlert;
 
   return (
     <>
@@ -63,33 +64,25 @@ export function InvestigationOverview({
         <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:p-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-[0.13em] ${
-                  isFiring
-                    ? "border-incident/30 bg-incident/[0.07] text-incident"
-                    : "border-steel bg-canvas text-ink"
-                }`}
-              >
-                <StatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                {alert.status}
-              </span>
+              <AlertStatusBadge status={alert.status} />
               {alert.service && (
-                <span className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-slate">
-                  <Server className="h-3.5 w-3.5" aria-hidden="true" />
-                  {alert.service}
+                <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-mono text-xs font-semibold text-slate">
+                  <Server className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0 break-words [overflow-wrap:anywhere]">{alert.service}</span>
                 </span>
               )}
             </div>
 
             <h1
               id="alert-title"
-              className="mt-4 max-w-4xl text-2xl font-extrabold tracking-[-0.025em] text-ink sm:text-3xl"
+              className="mt-4 max-w-4xl break-words text-2xl font-extrabold tracking-[-0.025em] text-ink [overflow-wrap:anywhere] sm:text-3xl"
             >
               {alert.title}
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
+            <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-slate [overflow-wrap:anywhere]">
               {alert.message}
             </p>
+            <AlertIdentifiers alert={alert} />
           </div>
 
           <dl className="grid min-w-0 gap-3 text-xs sm:min-w-[17rem] sm:grid-cols-2 lg:grid-cols-1">
@@ -97,51 +90,51 @@ export function InvestigationOverview({
               <dt className="font-bold uppercase tracking-[0.12em] text-slate">
                 Started
               </dt>
-              <dd className="mt-1 font-mono font-semibold tabular-nums text-ink">
+              <dd className="mt-1 break-words font-mono font-semibold tabular-nums text-ink [overflow-wrap:anywhere]">
                 {formatDateTime(alert.startedAt)}
               </dd>
             </div>
             <div>
               <dt className="font-bold uppercase tracking-[0.12em] text-slate">
-                {isResolved ? "Resolved" : "Last updated"}
+                {isResolved ? "Resolved" : "Last alert update"}
               </dt>
-              <dd className="mt-1 font-mono font-semibold tabular-nums text-ink">
-                {formatDateTime(alert.resolvedAt ?? alert.updatedAt)}
+              <dd className="mt-1 break-words font-mono font-semibold tabular-nums text-ink [overflow-wrap:anywhere]">
+                {formatDateTime(isResolved ? alert.resolvedAt ?? alert.updatedAt : alert.updatedAt)}
               </dd>
             </div>
           </dl>
         </div>
       </section>
 
+      {children}
+
       <section
         className="mt-4 rounded-xl border border-steel bg-surface p-5 shadow-panel"
         aria-labelledby="window-heading"
+        aria-describedby="window-description"
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p
               id="window-heading"
-              className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-slate"
+              className="text-xs font-bold uppercase tracking-[0.16em] text-slate"
             >
-              Investigation window
+              Evidence time range
             </p>
             <div className="mt-2 flex items-center gap-2">
               {isResolved ? (
                 <LockKeyhole className="h-4 w-4 text-slate" aria-hidden="true" />
               ) : (
-                <span className="relative flex h-3 w-3" aria-hidden="true">
-                  <span className="live-ping absolute inline-flex h-full w-full rounded-full bg-incident opacity-60" />
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-incident" />
-                </span>
+                <Clock3 className="h-4 w-4 text-slate" aria-hidden="true" />
               )}
               <span className="text-sm font-extrabold text-ink">
-                {isResolved ? "Frozen evidence window" : "Live evidence window"}
+                {isResolved ? "Resolved evidence window" : "Evidence snapshot"}
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate">
+            <p id="window-description" className="mt-1 max-w-3xl text-sm leading-6 text-slate">
               {isResolved
-                ? "Finalized when the alert resolved."
-                : "The investigation remains open for new evidence."}
+                ? "This alert is resolved. The times below show the range of records loaded at your last refresh."
+                : "This alert is still open. It does not close just because time has passed. These are the records loaded at your last refresh; this view does not show whether new data is arriving."}
             </p>
           </div>
 
@@ -149,33 +142,27 @@ export function InvestigationOverview({
             {isResolved ? (
               <LockKeyhole className="h-4 w-4 text-slate" aria-hidden="true" />
             ) : (
-              <RadioTower className="h-4 w-4 text-incident" aria-hidden="true" />
+              <Clock3 className="h-4 w-4 text-slate" aria-hidden="true" />
             )}
-            {isResolved ? "FINALIZED" : "COLLECTING"}
+            {isResolved ? "Resolved" : "Unresolved"}
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 items-center gap-3 sm:grid-cols-[auto_minmax(3rem,1fr)_auto]">
-          <div>
-            <span className="block text-[0.65rem] font-bold uppercase tracking-widest text-slate">
-              From
+        <div className="mt-5 grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(3rem,1fr)_minmax(0,1fr)]">
+          <div className="min-w-0">
+            <span className="block text-xs font-bold uppercase tracking-widest text-slate">
+              Evidence from
             </span>
-            <time className="mt-1 block font-mono text-xs font-semibold tabular-nums text-ink">
+            <time dateTime={window.from} className="mt-1 block break-words font-mono text-xs font-semibold tabular-nums text-ink [overflow-wrap:anywhere]">
               {formatDateTime(window.from)}
             </time>
           </div>
-          <div className="relative order-last h-2 overflow-hidden rounded-full bg-steel sm:order-none" aria-hidden="true">
-            <div
-              className={`absolute inset-y-0 left-0 rounded-full ${
-                isResolved ? "w-full bg-slate" : "live-window w-4/5 bg-incident"
-              }`}
-            />
-          </div>
-          <div className="sm:text-right">
-            <span className="block text-[0.65rem] font-bold uppercase tracking-widest text-slate">
-              To
+          <div className="hidden h-px bg-steel sm:block" aria-hidden="true" />
+          <div className="min-w-0 sm:text-right">
+            <span className="block text-xs font-bold uppercase tracking-widest text-slate">
+              Evidence through
             </span>
-            <time className="mt-1 block font-mono text-xs font-semibold tabular-nums text-ink">
+            <time dateTime={window.to} className="mt-1 block break-words font-mono text-xs font-semibold tabular-nums text-ink [overflow-wrap:anywhere]">
               {formatDateTime(window.to)}
             </time>
           </div>
@@ -192,35 +179,35 @@ export function InvestigationOverview({
           detail={summary.servicesInvolved.join(" · ") || "No services observed"}
         />
         <SummaryStat
-          label="Error spans"
+          label="Failed steps"
           value={summary.errorSpans}
-          detail="Spans with error status"
+          detail="Steps marked as errors (spans)"
           critical={summary.errorSpans > 0}
         />
         <SummaryStat
-          label="Metric anomalies"
+          label="Metric findings"
           value={summary.metricAnomalies}
-          detail="Threshold observations"
+          detail="Readings that met an alert rule"
           critical={summary.metricAnomalies > 0}
         />
         <SummaryStat
-          label="Log errors"
+          label="Error logs"
           value={summary.logErrors}
-          detail="Error-level log entries"
+          detail="Log records marked as errors"
           critical={summary.logErrors > 0}
         />
       </section>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 px-1">
-        <span className="inline-flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.13em] text-slate">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.13em] text-slate">
           <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-          Services observed
+          Services in this evidence
         </span>
         {summary.servicesInvolved.length > 0 ? (
           summary.servicesInvolved.map((service) => (
             <span
               key={service}
-              className="rounded-md border border-steel bg-surface px-2 py-1 font-mono text-xs font-semibold text-ink"
+              className="min-w-0 max-w-full break-words rounded-md border border-steel bg-surface px-2 py-1 font-mono text-xs font-semibold text-ink [overflow-wrap:anywhere]"
             >
               {service}
             </span>

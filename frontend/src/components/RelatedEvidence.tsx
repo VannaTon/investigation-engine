@@ -6,6 +6,7 @@ import {
 } from "../lib/correlations";
 import { InvestigationDetailSection } from "./InvestigationDetailSection";
 import { FindingReferenceList } from "./FindingReferences";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import type {
   InvestigationCorrelation,
   InvestigationCorrelationType,
@@ -28,13 +29,13 @@ const correlationPresentation: Record<
   { label: string; explanation: string; Icon: typeof Link2 }
 > = {
   same_span: {
-    label: "Same span",
-    explanation: "These findings reference the same execution span.",
+    label: "Same step (span)",
+    explanation: "These findings share trace and span IDs, linking them to one recorded step.",
     Icon: Link2,
   },
   same_trace: {
-    label: "Same trace",
-    explanation: "These findings occurred within the same distributed trace.",
+    label: "Same request path (trace)",
+    explanation: "These findings share a trace ID, linking them to one recorded request or operation.",
     Icon: Waypoints,
   },
   temporal_service: {
@@ -61,18 +62,18 @@ export function RelatedEvidence({
   return (
     <InvestigationDetailSection
       id="relationships"
-      eyebrow="Supporting relationships"
-      title="Relationships"
+      eyebrow="Supporting connections"
+      title="Connections"
       description={
         items.length === 0
-          ? "No factual evidence relationships were identified."
-          : `${items.length} factual ${items.length === 1 ? "relationship" : "relationships"} across shared telemetry context.`
+          ? "No recorded connections were found."
+          : `${items.length} recorded ${items.length === 1 ? "connection" : "connections"} through shared evidence.`
       }
       count={items.length}
       Icon={Network}
-      actionLabel="View relationships"
-      drawerTitle="Related evidence"
-      drawerDescription="Complete factual correlation details. Relationships do not establish cause."
+      actionLabel="View connections"
+      drawerTitle="Connections"
+      drawerDescription="All recorded connection details. Connections do not confirm cause."
       grouped={grouped}
       open={detailsOpen}
       onOpenChange={onDetailsOpenChange}
@@ -80,7 +81,7 @@ export function RelatedEvidence({
         relationshipTypes.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {relationshipTypes.map((type) => (
-              <span key={type} className="rounded bg-canvas px-1.5 py-0.5 text-[0.68rem] font-semibold text-ink">
+              <span key={type} className="rounded bg-canvas px-1.5 py-0.5 text-xs font-semibold text-ink">
                 {correlationPresentation[type].label}
               </span>
             ))}
@@ -90,7 +91,7 @@ export function RelatedEvidence({
     >
       {items.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-slate">
-          No related evidence groups were identified.
+          No recorded connections were found.
         </p>
       ) : (
         <ul className="space-y-4 p-4 sm:p-5">
@@ -125,7 +126,7 @@ export function RelatedEvidence({
                       onClick={() => onSelectCorrelation(selected ? null : correlation.id)}
                       className="rounded-md border border-steel bg-surface px-2.5 py-1.5 text-xs font-extrabold text-ink hover:border-slate/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                     >
-                      {selected ? "Clear emphasis" : "Emphasize findings"}
+                      {selected ? "Clear highlight" : "Highlight findings"}
                     </button>
                   </div>
 
@@ -134,30 +135,25 @@ export function RelatedEvidence({
                   </p>
 
                   {(correlation.service || correlation.traceId || correlation.spanId) && (
-                    <dl className="mt-3 grid gap-2 border-t border-steel pt-3 text-xs sm:grid-cols-2">
+                    <div className="mt-3 border-t border-steel pt-3">
                       {correlation.service && (
-                        <div className="min-w-0">
+                        <dl className="min-w-0 text-xs">
                           <dt className="font-bold uppercase tracking-[0.1em] text-slate">Service</dt>
                           <dd className="mt-1 break-all font-mono font-semibold text-ink">{correlation.service}</dd>
-                        </div>
+                        </dl>
                       )}
-                      {correlation.traceId && (
-                        <div className="min-w-0">
-                          <dt className="font-bold uppercase tracking-[0.1em] text-slate">Trace</dt>
-                          <dd className="mt-1 break-all font-mono text-slate">{correlation.traceId}</dd>
-                        </div>
-                      )}
-                      {correlation.spanId && (
-                        <div className="min-w-0">
-                          <dt className="font-bold uppercase tracking-[0.1em] text-slate">Span</dt>
-                          <dd className="mt-1 break-all font-mono text-slate">{correlation.spanId}</dd>
-                        </div>
-                      )}
-                    </dl>
+                      <ExactIdentifiers
+                        identifiers={[
+                          ...(correlation.traceId ? [{ label: "Trace ID", value: correlation.traceId }] : []),
+                          ...(correlation.spanId ? [{ label: "Span ID", value: correlation.spanId }] : []),
+                        ]}
+                        className={correlation.service ? "mt-2" : undefined}
+                      />
+                    </div>
                   )}
 
                   <div className="mt-4">
-                    <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-slate">
+                    <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate">
                       {references.length} connected {references.length === 1 ? "finding" : "findings"}
                     </p>
                     <FindingReferenceList

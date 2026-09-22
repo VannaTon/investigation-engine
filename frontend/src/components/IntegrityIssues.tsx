@@ -1,5 +1,6 @@
 import { Link2, ShieldCheck, TriangleAlert } from "lucide-react";
 import { InvestigationDetailSection } from "./InvestigationDetailSection";
+import { ExactIdentifiers } from "./ExactIdentifiers";
 import {
   findRelatedLogIndex,
   findTraceNode,
@@ -16,9 +17,9 @@ import type {
 } from "../types/investigation";
 
 const issueTypeLabels: Record<InvestigationIntegrityIssueType, string> = {
-  missing_trace_reference: "Missing trace reference",
-  missing_span_reference: "Missing span reference",
-  service_span_mismatch: "Service and span mismatch",
+  missing_trace_reference: "Linked trace unavailable",
+  missing_span_reference: "Linked step unavailable",
+  service_span_mismatch: "Service and step mismatch",
 };
 
 interface IntegrityIssuesProps {
@@ -48,20 +49,20 @@ export function IntegrityIssues({
     <InvestigationDetailSection
       id="integrity"
       eyebrow="Data quality"
-      title={hasIssues ? "Integrity issues" : "Telemetry references verified"}
+      title={hasIssues ? "Data check issues" : "Data checks"}
       description={
         hasIssues
-          ? "Some telemetry references could not be structurally verified."
-          : "No inconsistent trace or span references were reported."
+          ? "Some recorded trace or span links are missing or inconsistent."
+          : "No missing or inconsistent trace or span links were reported."
       }
       count={issues.length}
       Icon={hasIssues ? TriangleAlert : ShieldCheck}
       actionLabel={hasIssues ? "Review" : "View check"}
-      drawerTitle={hasIssues ? "Telemetry reference issues" : "Telemetry references verified"}
+      drawerTitle={hasIssues ? "Data check issues" : "Data checks"}
       drawerDescription={
         hasIssues
-          ? "Reference inconsistencies affect data quality; they do not invalidate the incident."
-          : "Reference checks reported by the investigation response."
+          ? "Missing or inconsistent links affect data quality; they do not mean the incident is invalid."
+          : "Checks reported for links between the recorded evidence."
       }
       warning={hasIssues}
       grouped={grouped}
@@ -79,8 +80,8 @@ export function IntegrityIssues({
     >
       {!hasIssues ? (
         <p className="px-5 py-4 text-xs leading-5 text-slate sm:px-6">
-          Telemetry references were checked for this investigation. No inconsistent
-          trace or span references were reported.
+          No missing or inconsistent trace or span links were reported for this
+          investigation. A trace follows a request or operation; a span records one step.
         </p>
       ) : (
         <ul className="divide-y divide-steel">
@@ -109,26 +110,22 @@ export function IntegrityIssues({
                       {issue.message}
                     </p>
 
-                    <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
-                      {issue.service && (
+                    {issue.service && (
+                      <dl className="mt-3 text-xs">
                         <div>
                           <dt className="font-bold uppercase tracking-[0.1em] text-slate">Log service</dt>
                           <dd className="mt-0.5 font-mono text-ink">{issue.service}</dd>
                         </div>
-                      )}
-                      {issue.traceId && (
-                        <div>
-                          <dt className="font-bold uppercase tracking-[0.1em] text-slate">Trace</dt>
-                          <dd className="mt-0.5 break-all font-mono text-ink">{issue.traceId}</dd>
-                        </div>
-                      )}
-                      {issue.spanId && (
-                        <div>
-                          <dt className="font-bold uppercase tracking-[0.1em] text-slate">Span</dt>
-                          <dd className="mt-0.5 break-all font-mono text-ink">{issue.spanId}</dd>
-                        </div>
-                      )}
-                    </dl>
+                      </dl>
+                    )}
+
+                    <ExactIdentifiers
+                      identifiers={[
+                        ...(issue.traceId ? [{ label: "Trace ID", value: issue.traceId }] : []),
+                        ...(issue.spanId ? [{ label: "Span ID", value: issue.spanId }] : []),
+                      ]}
+                      className="mt-3"
+                    />
 
                     <div className="mt-3 flex flex-wrap gap-3">
                       {log && (
@@ -148,7 +145,7 @@ export function IntegrityIssues({
                           className="inline-flex items-center gap-1.5 text-xs font-extrabold text-slate underline decoration-steel underline-offset-4 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                         >
                           <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                          View referenced span
+                          View linked step
                         </a>
                       )}
                       {!span && traceRoot && issue.traceId && (

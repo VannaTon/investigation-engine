@@ -13,11 +13,20 @@ interface FixtureSelectorProps {
 }
 
 const fixtureGroups = [
-  { label: "Lifecycle", options: ["Resolved", "Firing"] },
-  { label: "Content / shape", options: ["Empty", "Deep trace", "Groups"] },
-  { label: "Integrity", options: ["Mismatch", "Missing refs"] },
-  { label: "Ranking", options: ["Candidate tie"] },
+  { label: "Alert status", options: ["Resolved", "Firing"] },
+  { label: "Evidence examples", options: ["Empty", "Deep trace", "Groups"] },
+  { label: "Data checks", options: ["Mismatch", "Missing refs"] },
+  { label: "Ranking ties", options: ["Candidate tie"] },
 ];
+
+const exampleLabels: Record<string, string> = {
+  Empty: "No evidence",
+  "Deep trace": "Long request path",
+  Groups: "Grouped evidence",
+  Mismatch: "Service mismatch",
+  "Missing refs": "Missing links",
+  "Candidate tie": "Tied candidates",
+};
 
 export function FixtureSelector({
   options,
@@ -32,13 +41,13 @@ export function FixtureSelector({
     <details ref={detailsRef} className="relative">
       <summary
         className="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-md border border-steel bg-canvas px-3 py-2 text-xs font-extrabold text-ink hover:border-slate/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink [&::-webkit-details-marker]:hidden"
-        aria-label="Open development fixtures"
+        aria-label="Open example investigations"
       >
         <FlaskConical className="h-3.5 w-3.5 text-slate" aria-hidden="true" />
-        <span className="hidden sm:inline">Fixtures</span>
+        <span className="hidden sm:inline">Examples</span>
         {selected && (
-          <span className="max-w-24 truncate font-mono text-[0.68rem] text-slate">
-            {selected.label}
+          <span className="max-w-24 truncate font-mono text-xs text-slate">
+            {exampleLabels[selected.label] ?? selected.label}
           </span>
         )}
         <ChevronDown className="h-3.5 w-3.5 text-slate" aria-hidden="true" />
@@ -46,12 +55,12 @@ export function FixtureSelector({
 
       <div
         className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-lg border border-steel bg-surface shadow-panel"
-        aria-label="Development fixture scenarios"
+        aria-label="Example investigations"
       >
         <div className="border-b border-steel px-4 py-3">
-          <p className="text-xs font-extrabold text-ink">Development fixtures</p>
-          <p className="mt-1 text-[0.68rem] leading-5 text-slate">
-            Test investigation lifecycle and response shapes.
+          <p className="text-xs font-extrabold text-ink">Example investigations</p>
+          <p className="mt-1 text-xs leading-5 text-slate">
+            Sample data for exploring the interface. These are not live alerts.
           </p>
         </div>
         <div className="max-h-[min(28rem,70vh)] overflow-y-auto p-2">
@@ -64,7 +73,7 @@ export function FixtureSelector({
 
             return (
               <div key={group.label} className="mb-2 last:mb-0">
-                <p className="px-2 py-1 text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-slate">
+                <p className="px-2 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-slate">
                   {group.label}
                 </p>
                 {groupOptions.map((option) => {
@@ -86,9 +95,9 @@ export function FixtureSelector({
                           : "text-slate hover:bg-canvas hover:text-ink")
                       }
                     >
-                      <span>{option.label}</span>
+                      <span>{exampleLabels[option.label] ?? option.label}</span>
                       {active && (
-                        <span className="text-[0.6rem] font-extrabold uppercase tracking-[0.1em] text-slate">
+                        <span className="text-xs font-extrabold uppercase tracking-[0.1em] text-slate">
                           Current
                         </span>
                       )}
