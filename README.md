@@ -1,201 +1,461 @@
 # Observability Platform
 
-## Local Investigation MVP v0.1
+An OpenTelemetry-based observability and incident-investigation platform that helps engineers understand failures across distributed services.
 
-Investigate real telemetry using deterministic candidate ranking, linked
-findings, and supporting traces, metrics, and logs. AI explanations are optional;
-they do not determine ranking or replace evidence.
+## Overview
 
-- [Local runbook and supported behavior](docs/LOCAL_MVP_RUNBOOK.md)
-- [MVP roadmap and acceptance checklist](docs/LOCAL_INVESTIGATION_MVP.md)
-- [Phase 12 workflow acceptance record](docs/PHASE_12_WORKFLOW_ACCEPTANCE.md)
-- [Phase 13 release closeout and open gates](docs/PHASE_13_RELEASE_CLOSEOUT.md)
-- [Frontend API integration](frontend/docs/API_INTEGRATION.md)
+Modern systems generate large amounts of telemetry: **traces, metrics, and logs**. The difficult part is often not collecting that data, but connecting it into a clear incident story.
 
-Phase 11A-11C implementation and automated coverage are present. Browser
-acceptance remains open; Phase 12 has a historical real three-signal verification
-but not a completed full-workflow signoff. Phase 13 documentation and final
-automated checks are prepared. This is **not yet a completed release**.
+This project brings those signals together and organizes them into an investigation that helps engineers answer:
 
-For an already-initialized WSL workspace, use `npm run dev:stack` from `backend`,
-then open `http://localhost:5173`. Follow the runbook prerequisites first:
-fresh empty-database bootstrap is an explicit open release gate.
+- What happened?
+- Which services were involved?
+- Where did the failure appear in the request path?
+- Which logs, metrics, and spans support the investigation?
+- Which service is the strongest place to investigate first?
 
-## Application onboarding and ingestion security
+Instead of presenting telemetry only as separate dashboards, the platform focuses on **evidence-backed incident investigation**.
 
-The self-hosted MVP has one local management workspace and separate application
-identities. Open `http://localhost:5173/applications`, add an application, and
-create an ingestion key. The full key is returned once; only its hash is stored,
-and later key lists show metadata and the key prefix, never the secret. Disabling
-an application blocks every key for that application, while revoking a key blocks
-only that key.
-
-Normal backend startup is secure by default: `INGESTION_AUTH_MODE` defaults to
-`required`. Traces, metrics, and logs must send
-`Authorization: Bearer <ingestion-key>`; the backend derives
-`applicationId` from that key and does not trust an application identity in the
-telemetry body. Missing, invalid, or revoked keys are rejected, and disabled
-applications receive HTTP 403. There is no unauthenticated fallback in required
-mode.
-
-`npm run dev:stack` explicitly starts the local stack with
-`INGESTION_AUTH_MODE=development`, which assigns unauthenticated local demo
-telemetry to the fixed **Local development** application. Even in development
-mode, a supplied malformed or invalid key is rejected. Do not use development
-mode for a normal self-hosted deployment.
-
-Before starting an existing installation with required mode, run these commands
-from `backend`:
-
-```bash
-npm run migrate:up
-npm run configure:application-identity-storage
+```text
+Applications
+     ↓
+OpenTelemetry
+     ↓
+Traces + Metrics + Logs
+     ↓
+Ingestion and processing
+     ↓
+Evidence correlation
+     ↓
+Investigation
+     ↓
+Ranked places to investigate
 ```
 
-The Applications screen supplies the exact OpenTelemetry `http/json` environment
-settings for the new key. Existing OTLP paths stay unchanged:
-`/v1/traces`, `/otlp/v1/metrics`, and `/otlp/v1/logs`. Protobuf
-request/response compatibility remains intentionally deferred.
+---
 
-### Secure onboarding acceptance
+## What the Platform Helps With
 
-Run the full local stack in required-authentication mode from `backend`:
+The platform is designed to reduce the amount of manual work required to investigate incidents in distributed systems.
 
-```bash
-INGESTION_AUTH_MODE=required npm run dev:stack
+It helps engineers:
+
+- Collect telemetry through OpenTelemetry.
+- Follow requests across multiple services.
+- Connect logs to the exact trace or span that produced them.
+- Identify metric anomalies around an incident.
+- Group related evidence.
+- Understand how failures propagate through a request path.
+- Prioritize which service to investigate first.
+- Inspect the evidence behind that priority.
+- Acknowledge and resolve alerts from the investigation workflow.
+
+The ranking is **deterministic and evidence-based**. A highly ranked service is a recommended investigation starting point, not a guaranteed root cause.
+
+---
+
+## Main Workflow
+
+A typical incident moves through the platform like this:
+
+```text
+Service failure
+     ↓
+Trace, metric, and log telemetry
+     ↓
+Alert
+     ↓
+Investigation
+     ↓
+Connected evidence
+     ↓
+Candidate services
+     ↓
+Evidence-based ranking
+     ↓
+Engineer reviews the evidence
+     ↓
+Acknowledge / Resolve
 ```
 
-Then, from `backend/examples/otel-http-json-demo`, run:
+---
 
-```bash
-npm run verify:onboarding:secure
+# Core Capabilities
+
+## OpenTelemetry Ingestion
+
+The platform accepts OpenTelemetry telemetry over **OTLP/HTTP JSON**.
+
+Current signal support includes:
+
+- Traces
+- Logs
+- Gauge metrics
+- Cumulative counters
+- Explicit histograms
+
+`gzip` transport is supported for the OTLP receivers.
+
+---
+
+## Distributed Tracing
+
+The platform reconstructs request paths using real trace and span relationships.
+
+Example:
+
+```text
+gateway
+  └── checkout
+        └── payment
 ```
 
-The verifier rejects missing and unknown keys, creates a disposable application
-and one-time ingestion key, confirms listings never expose the key or its hash,
-and sends real trace, metric, and log data using OTLP/HTTP `http/json`. It also
-proves that an application identity forged inside telemetry cannot override the
-identity derived from the key, checks cross-application query isolation, and
-preserves one real three-signal investigation for frontend review. Before exit it
-disables the preserved rule, verifies disabled-application HTTP 403 and
-revoked-key HTTP 401 behavior, revokes the key, and leaves the disposable
-application disabled. Its output includes only IDs, the safe key prefix, and the
-frontend URL—never the raw key. Failure cleanup attempts the same safe final
-state and reports any cleanup operation that could not be completed.
+This makes it possible to see:
 
-### Continuous integration
+- Where failures appeared.
+- Which service was the observed failing leaf.
+- Whether a service was an upstream error ancestor.
+- How a failure propagated through the request path.
 
-The GitHub Actions workflow at `.github/workflows/ci.yml` runs on pushes to
-`main`, pull requests, and manual dispatch. It contains:
+---
 
-- backend type-checking, the complete backend test suite, and demo tests;
-- frontend type-checking, tests, and a production build; and
-- the opt-in alert lifecycle integration test against PostgreSQL 17.
+## Log and Trace Correlation
 
-The secure onboarding verifier is intentionally a local/manual acceptance gate,
-not a CI job, because it requires the API, Redis, ClickHouse, and all telemetry
-workers and creates disposable application, key, alert, and telemetry records.
-No repository or provider secret is required by the CI workflow.
+Logs can carry trace and span context.
 
-Phase 14A application identity and Phase 14B secure onboarding verification are
-now implemented. Further features require a separately chosen roadmap; see the
-deferred scope in the MVP checklist.
+When both identifiers match, the platform can connect a log to the exact operation that produced it.
 
-## Product finishing pass
+Example:
 
-The user-approved product-engineer feedback is being fixed one item at a time,
-without adding investigation features. See the [12-item finishing checklist](docs/PRODUCT_FINISHING_PASS.md).
-The first fix removes unsupported `COLLECTING` claims and fabricated progress:
-unresolved alerts show an evidence snapshot, and resolved alerts show a resolved
-evidence window. Alert age does not automatically close it; displayed bounds come
-from the fetched response. This UI cleanup does not change alert lifecycle policy
-or close the existing release gates.
-
-## Alert Rules (separately approved add-on)
-
-Open `http://localhost:5173/alert-rules` or choose **Alert Rules** in product
-navigation. This screen always uses the live API, not investigation fixtures.
-
-1. Export the chosen metric from your application through `/otlp/v1/metrics`.
-2. Choose a service observed in metric data from the past 24 hours, then choose
-   one of that service's metrics. Names stay exact; trace-only services and
-   fixtures are not added to these dropdowns. Set the operator, raw-unit
-   threshold, and lookback window. Changing service clears the metric and
-   threshold; changing metric clears the threshold and any previous sample check.
-3. Use **Check recent samples** to inspect up to 100 samples from the past
-   15 minutes. This preview is separate from the 24-hour discovery window.
-   Review the observed unit/type warnings before setting a threshold.
-4. Save the new rule disabled, review it, then explicitly enable it.
-
-Discovery has distinct loading, empty, and unavailable states. **Refresh choices**
-is an explicit action, not an automatic retry loop. Lists are capped at 200 choices
-in the UI and show a warning when more exist. An existing rule's exact current
-selection remains available even when it has no recent metric data; it is labeled
-as a current selection, not invented as an observed value. Discovery never selects
-a service, metric, unit conversion, or threshold on the user's behalf.
-
-Rules retain the existing evaluator: any fetched sample breach can trigger, with
-at most 500 samples fetched per evaluation. There is no averaging, sustained-breach
-calculation, unit conversion, or counter-to-rate conversion. Gauge guidance is not
-gauge-only enforcement. Automatic recovery needs the separate alert-recovery
-worker, which `dev:stack` does not include. Disabling is not resolving and cannot
-cancel an evaluation already in progress.
-
-Editing uses **Save changes** followed by a short confirmation. Confirmation is
-required before the single write; **Keep editing** or Escape retains the draft.
-There are no invented version numbers or sustained-duration controls.
-Saving creates a new disabled rule and disables the original atomically. The old
-name/configuration and linked alerts/findings are preserved. A precise revision
-token rejects stale or concurrent replacement saves with HTTP 409. Requests are
-bounded to 15 seconds in the frontend; an uncertain save requires an explicit
-list refresh and review, never automatic resubmission. Unsupported rule types and
-malformed configurations remain visible but are not editable. An enabled malformed
-metric rule can still be disabled. The UI has no delete action because the existing
-delete API cascades linked alerts.
-
-Existing CRUD success responses are retained, including the API's historical
-enabled-by-default create behavior when `enabled` is omitted. The new UI explicitly
-sends `enabled: false`. New editing endpoints are
-`GET /v1/alert-rules/:id/edit-context` and
-`POST /v1/alert-rules/:id/replacements` (name, complete config, revisionToken).
-
-The new read-only discovery endpoints are
-`GET /v1/metrics/discovery/services?applicationId=<application UUID>` and
-`GET /v1/metrics/discovery/metrics?applicationId=<application UUID>&service=<exact service>`.
-They return a server-selected UTC window covering the last 24 hours, ordered
-choices, and `hasMore`; the metrics response also echoes the service and reports
-bounded observed types/units, last-seen time, and metadata truncation. `limit`
-defaults to 200 and is capped at 500. Queries use only the scalar `metrics` table,
-with per-query time, memory, and scanned-row limits. A failed or over-budget query
-returns unavailable, not a quietly incomplete successful result. Existing raw
-metric, ingestion, evaluator, storage schema, and alert-history behavior is unchanged.
-
-Dropdown verification checkpoint (2026-09-13): both type checks and the frontend
-build pass; frontend tests are 214/214, and backend tests are 200 passed with one
-existing optional real-PostgreSQL lifecycle test skipped. A read-only real-storage
-check returned one observed service in about 2.9 seconds. The dependent metric
-lookup exceeded its five-second query budget (ClickHouse TIMEOUT_EXCEEDED, code
-159), so live metric discovery and browser acceptance are still open. Query
-budgets were not raised and no telemetry, rules, or historical findings were
-changed for this check. Read-only storage metadata reports 2,227 scalar metric
-rows and 66,404 total bytes; a large metrics-table scan is not supported by that
-evidence. The bounded query-log diagnostic also timed out, so query-specific cost
-versus environmental latency is not yet isolated.
-Close this add-on only after both real discovery lookups
-succeed and the new/edit rule browser workflow is reviewed; do not automatically
-start another feature phase.
-
-With the initialized stack and metric worker already running, repeat the scoped
-real-storage check from `backend`:
-
-```bash
-npx tsx src/scripts/verify-alert-rule-management.ts
+```text
+checkout span
+     └── ERROR log emitted inside this span
 ```
 
-It checks healthy/breaching OTLP gauges, preserved original findings, concurrent
-replacement rejection, and real PostgreSQL rollback. It starts no public listener,
-worker, or provider call. It removes only its uniquely owned disposable rules and
-linked alerts after their stream messages are acknowledged; scoped telemetry stays
-in ClickHouse. If safe cleanup cannot be confirmed, it reports exact test rule IDs
-and leaves them disabled for inspection. This add-on does not close the earlier
-MVP release gates.
+This provides stronger evidence than matching only by service name or timestamp.
+
+---
+
+## Metric Evidence
+
+Metrics can contribute evidence around an incident window.
+
+The current implementation supports scalar metrics such as:
+
+- Gauges
+- Cumulative counters
+
+It also supports lossless storage of explicit histograms.
+
+---
+
+## Evidence-Backed Investigations
+
+Investigations combine telemetry into structured evidence such as:
+
+- Trace failures
+- Log errors
+- Metric anomalies
+- Same-trace relationships
+- Same-span relationships
+- Cross-service failure patterns
+- Request-path position
+
+Related evidence is grouped so engineers can inspect the incident as a connected story instead of searching each telemetry source independently.
+
+---
+
+# Candidate Ranking
+
+Services with relevant failure evidence can become investigation candidates.
+
+Candidates are ranked using deterministic facts such as:
+
+- Failure severity
+- Position in the request path
+- Diversity of supporting evidence
+- Number of failure findings
+
+The frontend shows **why** a candidate appears where it does.
+
+The ranking is intended to answer:
+
+> Where should I investigate first?
+
+It does **not** claim:
+
+> This is definitely the root cause.
+
+---
+
+# Alert Lifecycle
+
+Alerts can move through the following lifecycle:
+
+```text
+Firing
+   ↓
+Acknowledged
+   ↓
+Resolved
+```
+
+The investigation workflow allows engineers to:
+
+- Acknowledge incidents.
+- Manually resolve incidents.
+- Preserve the relevant investigation window.
+
+---
+
+# Optional AI Explanation
+
+AI can generate a readable explanation of an existing investigation.
+
+It is intentionally separate from the core analysis:
+
+```text
+Deterministic investigation
+          ↓
+Optional AI explanation
+```
+
+The AI does **not**:
+
+- Create the evidence.
+- Determine candidate ranking.
+- Replace the deterministic investigation engine.
+
+If the external AI provider is unavailable, the investigation remains usable.
+
+---
+
+# Investigation Experience
+
+The frontend is organized around **understanding an incident** rather than browsing raw telemetry.
+
+Main areas include:
+
+- Alert overview
+- Investigation window
+- Ranked investigation candidates
+- Evidence story
+- Request path
+- Findings
+- Grouped evidence
+- Connections
+- Metrics and logs
+- Data-quality checks
+- Optional AI explanation
+
+Users can search and filter findings by:
+
+- Service
+- Severity
+- Finding type
+- Message text
+
+Raw identifiers such as trace IDs and span IDs remain available when needed, but are kept visually secondary to human-readable evidence.
+
+---
+
+# Investigations Workspace
+
+The `/investigations` workspace provides a place to find and manage alerts.
+
+It supports:
+
+- Search
+- Status filters
+- Sorting
+- Refresh
+- Loading states
+- Error states
+- Returning to the same search/filter context after viewing an investigation
+
+---
+
+# Architecture
+
+The platform uses a **streaming architecture** so telemetry ingestion is separated from storage and investigation processing.
+
+```text
+Applications
+     ↓
+OpenTelemetry / OTLP
+     ↓
+Fastify ingestion API
+     ↓
+Redis Streams
+     ↓
+Telemetry workers
+     ↓
+┌──────────────────────┬──────────────────────┐
+│      ClickHouse      │     PostgreSQL       │
+│  Telemetry Storage   │    Alerts / State    │
+└──────────────────────┴──────────────────────┘
+              ↓
+       Investigation Engine
+              ↓
+          React UI
+```
+
+## Architecture Responsibilities
+
+| Component            | Responsibility                         |
+| -------------------- | -------------------------------------- |
+| Applications         | Generate telemetry                     |
+| OpenTelemetry        | Standardize and transport telemetry    |
+| Fastify API          | Receive OTLP telemetry                 |
+| Redis Streams        | Decouple ingestion from processing     |
+| Telemetry Workers    | Process telemetry asynchronously       |
+| ClickHouse           | Store telemetry data                   |
+| PostgreSQL           | Store alerts and application state     |
+| Investigation Engine | Correlate evidence and rank candidates |
+| React UI             | Present investigations and workflows   |
+
+---
+
+# Main Technologies
+
+- **Node.js**
+- **TypeScript**
+- **Fastify**
+- **Redis Streams**
+- **ClickHouse**
+- **PostgreSQL**
+- **React**
+- **OpenTelemetry**
+
+---
+
+# Reliability
+
+Telemetry processing uses **Redis consumer groups** and recovery-aware workers.
+
+The system is designed around **at-least-once delivery**, with retry-safe downstream processing where replay could otherwise create duplicates.
+
+Workers include:
+
+- Bounded processing attempts
+- Abandoned-message recovery
+- Dead-letter handling
+- Graceful shutdown
+- Retry-safe storage for important side effects
+
+The project does **not** claim globally transactional exactly-once processing across Redis, ClickHouse, and PostgreSQL.
+
+---
+
+# Local Development
+
+The local development stack can be started with:
+
+```bash
+cd backend
+npm run dev:stack
+```
+
+The launcher starts the application services and workers needed for the normal local workflow.
+
+## Local Addresses
+
+| Service  | Address                 |
+| -------- | ----------------------- |
+| Frontend | `http://localhost:5173` |
+| Backend  | `http://localhost:3000` |
+
+## OTLP Endpoints
+
+### Traces
+
+```http
+POST /v1/traces
+```
+
+### Metrics
+
+```http
+POST /otlp/v1/metrics
+```
+
+### Logs
+
+```http
+POST /otlp/v1/logs
+```
+
+---
+
+# Project Status
+
+The current release target is a **local investigation MVP**.
+
+The core workflow is:
+
+```text
+Find an alert
+     ↓
+Open the investigation
+     ↓
+Review ranked candidates
+     ↓
+Inspect supporting evidence
+     ↓
+Acknowledge the alert
+     ↓
+Resolve the alert
+     ↓
+Return to the investigations workspace
+```
+
+The current finishing work is focused on:
+
+- Usability
+- Evidence review
+- Final workflow acceptance
+- Release documentation
+
+rather than adding new telemetry features.
+
+---
+
+# Current Limitations
+
+This project is currently designed as a **local MVP**, rather than a production multi-tenant observability service.
+
+Important limitations include:
+
+- No production authentication or multi-tenant project isolation.
+- No production deployment model yet.
+- OTLP support currently focuses on HTTP/JSON rather than protobuf.
+- OpenTelemetry Collector onboarding is not yet part of the main setup.
+- Server-side pagination for large alert workspaces is not implemented.
+- Advanced metric types such as Delta Sum, non-monotonic Sum, ExponentialHistogram, and Summary are not yet supported.
+- Histogram alerting and investigation semantics are not yet implemented.
+- General error-group investigation support is less complete than the main metric-threshold investigation flow.
+- AI explanations depend on an external provider and may be temporarily unavailable.
+- Some browser acceptance has been performed manually because automated browser tooling was not always available.
+- Throughput optimization such as Redis pipelining and larger ClickHouse batching remains future work.
+
+These limitations are intentionally outside the current local MVP finish line.
+
+---
+
+# Product Direction
+
+The project is exploring a focused product idea:
+
+> **Evidence-backed incident investigation for engineering using OpenTelemetry.**
+
+The goal is **not** to replace every observability dashboard.
+
+The goal is to help an engineer move from:
+
+> "There is an incident."
+
+to:
+
+> "These services are involved.
+> This is the strongest place to start.
+> Here is the trace, log, and metric evidence supporting that conclusion."
