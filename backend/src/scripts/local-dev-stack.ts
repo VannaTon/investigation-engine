@@ -116,6 +116,8 @@ export function buildLocalProcessSpecs(
     ...baseEnvironment,
     INGESTION_AUTH_MODE:
       baseEnvironment.INGESTION_AUTH_MODE ?? "development",
+    MANAGEMENT_AUTH_MODE:
+      baseEnvironment.MANAGEMENT_AUTH_MODE ?? "development",
   };
   const viteExecutable = resolve(
     frontendDirectory,
@@ -204,6 +206,8 @@ export function buildLocalProcessSpecs(
         ...localEnvironment,
         VITE_DATA_SOURCE: "http",
         VITE_API_BASE_URL: "http://localhost:3000",
+        VITE_MANAGEMENT_AUTH_MODE:
+          localEnvironment.MANAGEMENT_AUTH_MODE,
       },
     },
   ];
@@ -682,7 +686,7 @@ async function inspectInfrastructure(): Promise<InfrastructureContainerState[]> 
       const stderr = String(
         (error as { stderr?: string | Buffer }).stderr ?? "",
       );
-      if (stderr.includes("No such object")) {
+      if (stderr.toLowerCase().includes("No such object")) {
         states.push({ name, exists: false, running: false });
         continue;
       }
@@ -831,6 +835,12 @@ export async function runLocalDevStack(): Promise<void> {
         frontend: "http://127.0.0.1:5173",
         workerInstanceId: LOCAL_WORKER_INSTANCE_ID,
         alertRecoveryWorkerIncluded: false,
+        managementAuthMode:
+          specs.find((spec) => spec.name === "api")?.environment
+            .MANAGEMENT_AUTH_MODE,
+        ingestionAuthMode:
+          specs.find((spec) => spec.name === "api")?.environment
+            .INGESTION_AUTH_MODE,
       }),
     );
 
