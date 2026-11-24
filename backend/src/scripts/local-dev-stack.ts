@@ -686,7 +686,7 @@ async function inspectInfrastructure(): Promise<InfrastructureContainerState[]> 
       const stderr = String(
         (error as { stderr?: string | Buffer }).stderr ?? "",
       );
-      if (stderr.toLowerCase().includes("No such object")) {
+      if (stderr.toLowerCase().includes("no such object")) {
         states.push({ name, exists: false, running: false });
         continue;
       }
